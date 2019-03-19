@@ -13,8 +13,4 @@ public class Transmit_Interface {
     public void HostToCAN(String clazz, int field, Object o) {
 
     }
-
-    public void Can_init() {
-
-    }
 }

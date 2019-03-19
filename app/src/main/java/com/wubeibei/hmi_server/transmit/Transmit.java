@@ -1,6 +1,5 @@
 package com.wubeibei.hmi_server.transmit;
 
-import android.content.Context;
 import android.util.Log;
 import android.util.Pair;
 
@@ -20,6 +19,7 @@ import com.wubeibei.hmi_server.transmit.Class.PCGL1;
 import com.wubeibei.hmi_server.transmit.Class.PCGR1;
 import com.wubeibei.hmi_server.transmit.Class.VCU1;
 import com.wubeibei.hmi_server.transmit.Class.VCU4;
+import com.wubeibei.hmi_server.transmit.bean.SendFlag;
 import com.wubeibei.hmi_server.util.LogUtil;
 
 import java.io.IOException;
@@ -31,6 +31,8 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 import static com.wubeibei.hmi_server.transmit.Class.HMI.AIR_GRADE_OFF;
 import static com.wubeibei.hmi_server.transmit.Class.HMI.AIR_GRADE_SIX_GEAR;
@@ -56,18 +58,34 @@ import static com.wubeibei.hmi_server.transmit.bean.IntegerCommand.HMI_Dig_Ord_T
 import static com.wubeibei.hmi_server.transmit.bean.IntegerCommand.HMI_Dig_Ord_air_grade;
 import static com.wubeibei.hmi_server.transmit.bean.IntegerCommand.HMI_Dig_Ord_air_model;
 import static com.wubeibei.hmi_server.transmit.bean.IntegerCommand.HMI_Dig_Ord_eBooster_Warning;
+import static com.wubeibei.hmi_server.transmit.bean.IntegerCommand.can_num_HVMaxTemp;
 import static com.wubeibei.hmi_server.util.ByteUtil.bytesToHex;
 import static com.wubeibei.hmi_server.util.ByteUtil.subBytes;
 
 public class Transmit {
     private final static String TAG = "Transmit";
     private final static int MESSAGELENGTH = 14;
-    private final int PORT = 4001;   // port号
-    private final static String IP = "192.168.1.60"; // ip地址
+    private final static int CAN_PORT = 4001;   // CAN总线端口号
+    private final static int LOCAL_PORT = 4001;   // 本机监听端口号
+    private final static int LEFT_DOOR_PORT = 5556; // 左车门端口号
+    private final static int RIGHT_DOOR_PORT = 5556; // 右车门端口号
+    private final static int FRONT_DOOR_PORT = 5556; // 前风挡端口号
+
+    private final static String CAN_IP = "192.168.1.60"; // CAN总线IP地址
+    private final static String LEFT_DOOR_IP = "192.168.1.40"; // 左车门IP地址
+    private final static String RIGHT_DOOR_IP = "192.168.1.20"; // 右车门IP地址
+    private final static String FRONT_DOOR_IP = "192.168.1.10"; // 前风挡IP地址
+
     private boolean threadFlag = true; // 接收线程是否关闭
+    private BlockingQueue<JSONObject> blockingQueue;// 消息队列
+
 
     public static void main(String[] args) {
         new Transmit();
+    }
+
+    public static Transmit getInstance() {
+        return Holder.instance;
     }
 
     private static class Holder{
@@ -79,6 +97,10 @@ public class Transmit {
         start();
     }
 
+    public void setBlockingQueue(BlockingQueue<JSONObject> blockingQueue){
+        this.blockingQueue = blockingQueue;
+    }
+
     public void setADAndRCUFlag(boolean flag) {
         try {
             ((BaseClass) Objects.requireNonNull(NAME_AND_CLASS.get("HMI"))).setFlag(flag);
@@ -87,6 +109,7 @@ public class Transmit {
         }
     }
 
+    // pad向Can总线发消息
     public void HostToCAN(String clazz, int field, Object o) {
         BaseClass baseClass = (BaseClass) NAME_AND_CLASS.get(clazz);
         if (baseClass == null) {
@@ -106,11 +129,11 @@ public class Transmit {
                     Pair<byte[], byte[]> tmp = ((HMI) NAME_AND_CLASS.get("HMI")).getPairByte();
                     for (int i = 0; i < 5; i++) {
                         Thread.sleep(200);
-                        UDP_send(tmp.first);
+                        UDP_send(tmp.first, CAN_IP, CAN_PORT);
                         Log.d(TAG,i + ":" + "主机向车辆CAN总线发的信息:" + bytesToHex(tmp.first));
                     }
                     Thread.sleep(200);
-                    UDP_send(tmp.second);
+                    UDP_send(tmp.second, CAN_IP, CAN_PORT);
                     Log.d(TAG, "主机向车辆CAN总线发的无意义信息:" + bytesToHex(tmp.second));
                 }
             } catch (InterruptedException e) {
@@ -149,7 +172,7 @@ public class Transmit {
 
         byte[] bytes = HMI_Class.getBytes();
         LogUtil.d(TAG, "车辆初始化：" + bytesToHex(bytes));
-        UDP_send(bytes);
+        UDP_send(bytes, CAN_IP, CAN_PORT);
     }
 
     private void start() {
@@ -162,12 +185,30 @@ public class Transmit {
         }).start(); // 开启接收线程
     }
 
-    public static Transmit getInstance() {
-        return Holder.instance;
-    }
 
     public void sendToPad(JSONObject jsonObject, int target) {
-
+        // 判断是否需要发给Pad
+        switch (target) {
+            case SendFlag.LOCALHOST | SendFlag.FRONTSCREEN:
+                UDP_send(jsonObject.toString().getBytes(), FRONT_DOOR_IP, FRONT_DOOR_PORT);
+            case SendFlag.LOCALHOST:
+                blockingQueue.add(jsonObject);
+                break;
+            case SendFlag.LOCALHOST | SendFlag.DOOR:
+                blockingQueue.add(jsonObject);
+            case SendFlag.DOOR:
+                UDP_send(jsonObject.toString().getBytes(), LEFT_DOOR_IP, LEFT_DOOR_PORT);
+                UDP_send(jsonObject.toString().getBytes(), RIGHT_DOOR_IP, RIGHT_DOOR_PORT);
+                break;
+            case SendFlag.LOCALHOST | SendFlag.DOOR | SendFlag.FRONTSCREEN:
+                blockingQueue.add(jsonObject);
+            case SendFlag.DOOR | SendFlag.FRONTSCREEN:
+                UDP_send(jsonObject.toString().getBytes(), LEFT_DOOR_IP, LEFT_DOOR_PORT);
+                UDP_send(jsonObject.toString().getBytes(), RIGHT_DOOR_IP, RIGHT_DOOR_PORT);
+            case SendFlag.FRONTSCREEN:
+                UDP_send(jsonObject.toString().getBytes(), FRONT_DOOR_IP, FRONT_DOOR_PORT);
+                break;
+        }
     }
 
     // 接收CAN总线
@@ -176,7 +217,7 @@ public class Transmit {
         DatagramSocket datagramSocket;
         DatagramPacket datagramPacket;
         try {
-            datagramSocket = new DatagramSocket(PORT);
+            datagramSocket = new DatagramSocket(CAN_PORT);
             while (true) {
                 datagramPacket = new DatagramPacket(receMsgs, receMsgs.length);
                 datagramSocket.receive(datagramPacket);
@@ -189,21 +230,25 @@ public class Transmit {
         }
     }
 
-    // 发到CAN总线
-    private void UDP_send(byte[] sendMsgs) {
-        DatagramSocket datagramSocket = null;
-        DatagramPacket datagramPacket;
-        try {
-            datagramSocket = new DatagramSocket();
-            datagramPacket = new DatagramPacket(sendMsgs, sendMsgs.length, InetAddress.getByName(IP), PORT);
-            datagramSocket.send(datagramPacket);
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
-            if (datagramSocket != null) {
-                datagramSocket.close();
+    private void UDP_send(final byte[] sendMsgs, final String ip, final int port) {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                DatagramSocket datagramSocket = null;
+                DatagramPacket datagramPacket;
+                try {
+                    datagramSocket = new DatagramSocket();
+                    datagramPacket = new DatagramPacket(sendMsgs, sendMsgs.length, InetAddress.getByName(ip), port);
+                    datagramSocket.send(datagramPacket);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } finally {
+                    if (datagramSocket != null) {
+                        datagramSocket.close();
+                    }
+                }
             }
-        }
+        }).start();
     }
 
     // 消息标识符
