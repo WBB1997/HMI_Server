@@ -37,7 +37,7 @@ public abstract class BaseClass {
                 // target
                 int target = entry.getValue().getSecond().second;
                 // 发回主函数
-                Transmit.getInstance().callback(jsonObject, target);
+                Transmit.getInstance().sendToPad(jsonObject, target);
                 // debug
 //                    LogUtil.d(TAG, jsonObject.toJSONString());
             }

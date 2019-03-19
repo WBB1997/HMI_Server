@@ -67,15 +67,15 @@ public class HMI extends BaseClass {
     public static final int Ord_SystemRuningStatus_AWAIT = 3; // 预留
 
     //
-    private Map<String, ? super BaseClass> NAME_AND_CLASS;
+//    private Map<String, ? super BaseClass> NAME_AND_CLASS;
 
 
     public HMI() {
     }
 
-    public void setNAME_AND_CLASS(Map<String, ? super BaseClass> NAME_AND_CLASS) {
-        this.NAME_AND_CLASS = NAME_AND_CLASS;
-    }
+//    public void setNAME_AND_CLASS(Map<String, ? super BaseClass> NAME_AND_CLASS) {
+//        this.NAME_AND_CLASS = NAME_AND_CLASS;
+//    }
 
     //    private byte[] bytes = {(byte) 0xFF, (byte) 0xAA, 0x03, (byte) 0x83, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x02};
     private volatile byte[] bytes = {(byte) 0xFF, (byte) 0xAA, 0x03, (byte) 0x83, 0x00, (byte) 0x80, 0x1B, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x02};
