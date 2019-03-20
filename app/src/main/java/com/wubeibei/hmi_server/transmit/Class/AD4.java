@@ -95,7 +95,7 @@ public class AD4 extends BaseClass {
                 }
                 return lnglat;
             case 46:
-                return viewBinary(bytes[index / 8], index % 8);
+                return viewBinary(bytes[index / 8], index % 8) ? 1 : 0;
             default:
                 LogUtil.d(TAG, "数据下标错误");
                 break;

@@ -39,7 +39,7 @@ public class VCU3 extends BaseClass {
         int index = entry.getKey();
         switch (index) {
             case 4:
-                return viewBinary(bytes[index / 8], index);
+                return viewBinary(bytes[index / 8], index) ? 1 : 0;
             default:
                 LogUtil.d(TAG, "数据下标错误");
         }

@@ -92,7 +92,7 @@ public class BCM1 extends BaseClass {
             case 20:
             case 21:
             case 44:
-                return viewBinary(bytes[index / 8], index % 8);
+                return viewBinary(bytes[index / 8], index % 8) ? 1 : 0;
             case 24:
             case 32:
                 return countBits(bytes,0,index,8, getState()) * 0.5 - 20;

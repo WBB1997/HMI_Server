@@ -121,7 +121,6 @@ public class ByteUtil {
                 if (!flag)
                     break;
             }
-            System.out.println(ByteUtil.bytesToHex(SrcBytes));
             int index = start_bit_index;
             for (int i = 0; i < bitLength; i++) {
                 flag = viewBinary(SrcBytes[(SrcBytes.length * 8 - i - 1) / 8], i % 8);

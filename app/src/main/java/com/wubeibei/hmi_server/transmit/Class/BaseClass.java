@@ -44,7 +44,6 @@ public abstract class BaseClass {
         }
         flag = false;
         System.arraycopy(bytes, 0, getBytes(), 0, bytes.length);
-//        LogUtil.d(TAG, "this.bytes:" + bytesToHex(getBytes()));
     }
     public abstract Object getValue(Map.Entry<Integer, MyPair<Integer>> entry, byte[] bytes);
     public abstract HashMap<Integer, MyPair<Integer>> getFields();

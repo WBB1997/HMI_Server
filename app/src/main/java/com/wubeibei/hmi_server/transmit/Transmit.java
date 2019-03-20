@@ -32,7 +32,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
 
 import static com.wubeibei.hmi_server.transmit.Class.HMI.AIR_GRADE_OFF;
 import static com.wubeibei.hmi_server.transmit.Class.HMI.AIR_GRADE_SIX_GEAR;
@@ -58,7 +57,6 @@ import static com.wubeibei.hmi_server.transmit.bean.IntegerCommand.HMI_Dig_Ord_T
 import static com.wubeibei.hmi_server.transmit.bean.IntegerCommand.HMI_Dig_Ord_air_grade;
 import static com.wubeibei.hmi_server.transmit.bean.IntegerCommand.HMI_Dig_Ord_air_model;
 import static com.wubeibei.hmi_server.transmit.bean.IntegerCommand.HMI_Dig_Ord_eBooster_Warning;
-import static com.wubeibei.hmi_server.transmit.bean.IntegerCommand.can_num_HVMaxTemp;
 import static com.wubeibei.hmi_server.util.ByteUtil.bytesToHex;
 import static com.wubeibei.hmi_server.util.ByteUtil.subBytes;
 
