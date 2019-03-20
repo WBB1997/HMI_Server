@@ -128,11 +128,11 @@ public class Transmit {
                     for (int i = 0; i < 5; i++) {
                         Thread.sleep(200);
                         UDP_send(tmp.first, CAN_IP, CAN_PORT);
-                        Log.d(TAG,i + ":" + "主机向车辆CAN总线发的信息:" + bytesToHex(tmp.first));
+//                        Log.d(TAG,i + ":" + "主机向车辆CAN总线发的信息:" + bytesToHex(tmp.first));
                     }
                     Thread.sleep(200);
                     UDP_send(tmp.second, CAN_IP, CAN_PORT);
-                    Log.d(TAG, "主机向车辆CAN总线发的无意义信息:" + bytesToHex(tmp.second));
+//                    Log.d(TAG, "主机向车辆CAN总线发的无意义信息:" + bytesToHex(tmp.second));
                 }
             } catch (InterruptedException e) {
                 e.printStackTrace();

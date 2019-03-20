@@ -39,6 +39,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
     private Transmit transmit;
     private ServerSocket server = null;
+    private static final int LOCAL_PORT = 5678;
     private static final boolean DEBUG = true; // 是否启动调试
 
     private final Map<String, Service> socketMap = new ConcurrentHashMap<>(); // 经过允许的客户端
@@ -105,21 +106,22 @@ public class MainActivity extends AppCompatActivity {
         }).start();
     }
 
-    private void ReceiveForPad(){
+    private void ReceiveForPad() {
         try {
-            server = new ServerSocket();
-            Socket client;
-            if(DEBUG)
-                LogTextView.append("服务器Ip:" + server.getInetAddress().getHostAddress() + "。\n");
+            server = new ServerSocket(LOCAL_PORT);
+            if (DEBUG)
+                LogTextView.append("服务器开始监听：" + server.getLocalPort() + "\n");
             while (true) {
+                Socket client;
                 client = server.accept();
                 mExecutorService.execute(new Service(client));
             }
         } catch (IOException e) {
             e.printStackTrace();
-        }finally {
+        } finally {
             try {
-                server.close();
+                if (server != null)
+                    server.close();
             } catch (IOException e) {
                 e.printStackTrace();
             }
