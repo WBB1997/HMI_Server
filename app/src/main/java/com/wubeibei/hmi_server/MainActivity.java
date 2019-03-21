@@ -1,7 +1,11 @@
 package com.wubeibei.hmi_server;
 
+import android.content.Context;
+import android.net.wifi.WifiConfiguration;
+import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.text.method.ScrollingMovementMethod;
 import android.widget.TextView;
 
 import com.alibaba.fastjson.JSONObject;
@@ -19,6 +23,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.lang.reflect.Method;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.HashSet;
@@ -46,8 +51,7 @@ public class MainActivity extends AppCompatActivity {
     private final Set<String> devicesSet = new HashSet<>(); // 允许连接的设备号集合
     private final ExecutorService mExecutorService = Executors.newCachedThreadPool(); // 线程池
     private final BlockingQueue<JSONObject> blockingQueue = new LinkedBlockingQueue<>(); // 消息队列
-
-
+    private WifiManager wifiManager;
 
     private TextView LogTextView;
 
@@ -58,7 +62,35 @@ public class MainActivity extends AppCompatActivity {
         transmit = Transmit.getInstance();
         transmit.setBlockingQueue(blockingQueue); //设置回调阻塞队列
         LogTextView = findViewById(R.id.LogTextView);
+        LogTextView.setMovementMethod(ScrollingMovementMethod.getInstance());
+        // 开启热点
+        wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+//        ApManager.openHotspot(this,"hmi_host","hmi_host");
+        setWifiApEnabled(true);
         init();
+    }
+
+    // wifi热点开关
+    public void setWifiApEnabled(boolean enabled) {
+        if (enabled) { // disable WiFi in any case
+            //wifi和热点不能同时打开，所以打开热点的时候需要关闭wifi
+            wifiManager.setWifiEnabled(false);
+        }
+        WifiManager wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+        try {
+            WifiConfiguration apConfig = new WifiConfiguration();
+            //配置热点的名称
+            apConfig.SSID ="hmi_host";
+            //配置热点的密码(至少8位)
+            apConfig.preSharedKey = "hmi_host";
+            apConfig.allowedKeyManagement.set(4);
+            //通过反射调用设置热点
+            Method method = wifiManager.getClass().getMethod(
+                    "setWifiApEnabled", WifiConfiguration.class, Boolean.TYPE);
+            Boolean rs = (Boolean) method.invoke(wifiManager, apConfig, enabled);//true开启热点 false关闭热点
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     // 开启收发线程
@@ -137,7 +169,7 @@ public class MainActivity extends AppCompatActivity {
         private String msg = "";
         private String PadIpAddress;
         private int PadPort;
-        private boolean PERMISSION = false;
+        private boolean PERMISSION = true;
 
         Service(Socket socket) {
             this.socket = socket;
@@ -172,6 +204,7 @@ public class MainActivity extends AppCompatActivity {
                         if (DEBUG)
                             LogTextView.append("客户端 :" + PadIpAddress + "/" + String.valueOf(PadPort) + "发送：" + msg + "。\n");
                         JSONObject jsonObject = (JSONObject) JSONObject.parse(msg);
+
                         // 如果是第一次进入，需要进行权限认证
                         if(!PERMISSION){
                             String mac = jsonObject.getString("MAC");
@@ -261,4 +294,43 @@ public class MainActivity extends AppCompatActivity {
             e.printStackTrace();
         }
     }
+
+//    /**
+//     * 创建Wifi热点
+//     */
+//    private void createWifiHotspot(String SSID, String password) {
+//        if (wifiManager.isWifiEnabled()) {
+//            //如果wifi处于打开状态，则关闭wifi,
+//            wifiManager.setWifiEnabled(false);
+//        }
+//        WifiConfiguration config = new WifiConfiguration();
+//        config.SSID = WIFI_HOTSPOT_SSID;
+//        config.preSharedKey = "123456789";
+//        config.hiddenSSID = true;
+//        config.allowedAuthAlgorithms
+//                .set(WifiConfiguration.AuthAlgorithm.OPEN);//开放系统认证
+//        config.allowedGroupCiphers.set(WifiConfiguration.GroupCipher.TKIP);
+//        config.allowedKeyManagement.set(WifiConfiguration.KeyMgmt.WPA_PSK);
+//        config.allowedPairwiseCiphers
+//                .set(WifiConfiguration.PairwiseCipher.TKIP);
+//        config.allowedGroupCiphers.set(WifiConfiguration.GroupCipher.CCMP);
+//        config.allowedPairwiseCiphers
+//                .set(WifiConfiguration.PairwiseCipher.CCMP);
+//        config.status = WifiConfiguration.Status.ENABLED;
+//        //通过反射调用设置热点
+//        try {
+//            Method method = wifiManager.getClass().getMethod(
+//                    "setWifiApEnabled", WifiConfiguration.class, Boolean.TYPE);
+//            boolean enable = (Boolean) method.invoke(wifiManager, config, true);
+//            if (enable) {
+//                textview.setText("热点已开启 SSID:" + WIFI_HOTSPOT_SSID + " password:123456789");
+//            } else {
+//                textview.setText("创建热点失败");
+//            }
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//            textview.setText("创建热点失败");
+//        }
+//    }
+
 }
