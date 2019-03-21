@@ -1,4 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <devices>
-    <device>123</device>
+    <device>
+        <meid>NNF6R19220000758</meid>
+        <account>sharing-van002</account>
+        <password>234567</password>
+    </device>
 </devices>

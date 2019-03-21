@@ -5,15 +5,15 @@ import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
-import android.text.method.ScrollingMovementMethod;
+import android.util.Pair;
 import android.widget.TextView;
 
 import com.alibaba.fastjson.JSONObject;
 import com.wubeibei.hmi_server.transmit.Transmit;
+import com.wubeibei.hmi_server.util.LogUtil;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
-import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
@@ -26,10 +26,9 @@ import java.io.PrintWriter;
 import java.lang.reflect.Method;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -42,16 +41,16 @@ import javax.xml.parsers.ParserConfigurationException;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
+    private static final String CHECK = "1234";
     private Transmit transmit;
     private ServerSocket server = null;
     private static final int LOCAL_PORT = 5678;
     private static final boolean DEBUG = true; // 是否启动调试
 
     private final Map<String, Service> socketMap = new ConcurrentHashMap<>(); // 经过允许的客户端
-    private final Set<String> devicesSet = new HashSet<>(); // 允许连接的设备号集合
+    private final Map<String, Pair<String,String>> devicesMap = new HashMap<>(); // 允许连接的设备号集合
     private final ExecutorService mExecutorService = Executors.newCachedThreadPool(); // 线程池
     private final BlockingQueue<JSONObject> blockingQueue = new LinkedBlockingQueue<>(); // 消息队列
-    private WifiManager wifiManager;
 
     private TextView LogTextView;
 
@@ -62,21 +61,25 @@ public class MainActivity extends AppCompatActivity {
         transmit = Transmit.getInstance();
         transmit.setBlockingQueue(blockingQueue); //设置回调阻塞队列
         LogTextView = findViewById(R.id.LogTextView);
-        LogTextView.setMovementMethod(ScrollingMovementMethod.getInstance());
+//        LogTextView.setMovementMethod(ScrollingMovementMethod.getInstance());
         // 开启热点
-        wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
 //        ApManager.openHotspot(this,"hmi_host","hmi_host");
-        setWifiApEnabled(true);
+//        setWifiApEnabled(true);
         init();
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
     }
 
     // wifi热点开关
     public void setWifiApEnabled(boolean enabled) {
-        if (enabled) { // disable WiFi in any case
+        WifiManager wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+        if (enabled) {
             //wifi和热点不能同时打开，所以打开热点的时候需要关闭wifi
             wifiManager.setWifiEnabled(false);
         }
-        WifiManager wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
         try {
             WifiConfiguration apConfig = new WifiConfiguration();
             //配置热点的名称
@@ -87,7 +90,7 @@ public class MainActivity extends AppCompatActivity {
             //通过反射调用设置热点
             Method method = wifiManager.getClass().getMethod(
                     "setWifiApEnabled", WifiConfiguration.class, Boolean.TYPE);
-            Boolean rs = (Boolean) method.invoke(wifiManager, apConfig, enabled);//true开启热点 false关闭热点
+            method.invoke(wifiManager, apConfig, enabled);//true开启热点 false关闭热点
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -95,8 +98,8 @@ public class MainActivity extends AppCompatActivity {
 
     // 开启收发线程
     private void init() {
-        // 获取设备列表
-        getDevicesSet();
+        // 获取账户列表
+        getDevicesMap();
         // 车辆初始化
         new Thread(new Runnable() {
             @Override
@@ -121,13 +124,13 @@ public class MainActivity extends AppCompatActivity {
                     try {
                         JSONObject object = blockingQueue.take();
                         if (DEBUG)
-                            LogTextView.append("收到CAN总线发往Pad的消息" + object.toString() + "。\n");
+                            showToText("收到CAN总线发往Pad的消息" + object.toString() + "。\n");
                         Iterator<Map.Entry<String, Service>> it = socketMap.entrySet().iterator();
                         while (it.hasNext()) {
                             Map.Entry<String, Service> entry = it.next();
                             Service value = entry.getValue();
                             if (DEBUG)
-                                LogTextView.append("向" + value.getPadIpAddress() + "/" + value.getPadPort() + "发送：" + object.toString() + "。\n");
+                                showToText("向" + value.getPadIpAddress() + "/" + value.getPadPort() + "发送：" + object.toString() + "。\n");
                             value.sendmsg(object.toJSONString());
                         }
                     } catch (InterruptedException e) {
@@ -142,10 +145,15 @@ public class MainActivity extends AppCompatActivity {
         try {
             server = new ServerSocket(LOCAL_PORT);
             if (DEBUG)
-                LogTextView.append("服务器开始监听：" + server.getLocalPort() + "\n");
+                showToText("服务器开始监听：" + server.getLocalPort() + "\n");
             while (true) {
                 Socket client;
                 client = server.accept();
+                if(socketMap.containsKey(client.getInetAddress().getHostAddress())) {
+                    if (DEBUG)
+                        showToText("客户端 :" + client.getInetAddress().getHostAddress() + "/" + String.valueOf(client.getLocalPort()) + "重复登录。\n");
+                    continue;
+                }
                 mExecutorService.execute(new Service(client));
             }
         } catch (IOException e) {
@@ -169,7 +177,18 @@ public class MainActivity extends AppCompatActivity {
         private String msg = "";
         private String PadIpAddress;
         private int PadPort;
-        private boolean PERMISSION = true;
+        private boolean PERMISSION = false;
+        private volatile long lastSendTime;
+        private long HeartBeatTime = 5 * 60 * 1000;
+        private Thread HeartBeatThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while (System.currentTimeMillis() - lastSendTime < HeartBeatTime);
+                if (DEBUG)
+                    showToText("客户端 :" + PadIpAddress + "/" + String.valueOf(PadPort) + "因为5分钟之内没有发送消息，自动断开连接\n");
+                closeConn();
+            }
+        });
 
         Service(Socket socket) {
             this.socket = socket;
@@ -178,8 +197,8 @@ public class MainActivity extends AppCompatActivity {
             try {
                 in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                 out = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream())), true);
-                if (DEBUG)
-                    LogTextView.append("客户端 :" + PadIpAddress + "/" + String.valueOf(PadPort) + "加入；此时总连接：" + socketMap.size() + "。\n");
+                lastSendTime = System.currentTimeMillis();
+                HeartBeatThread.start();
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -199,22 +218,40 @@ public class MainActivity extends AppCompatActivity {
             try {
                 while (true) {
                     if ((msg = in.readLine()) != null) {
-//                        if(msg.equals("\n"))
-//                            continue;
-                        if (DEBUG)
-                            LogTextView.append("客户端 :" + PadIpAddress + "/" + String.valueOf(PadPort) + "发送：" + msg + "。\n");
-                        JSONObject jsonObject = (JSONObject) JSONObject.parse(msg);
+                        if (msg.equals("ping") && PERMISSION) {
+                            lastSendTime = System.currentTimeMillis();
+                            if (DEBUG)
+                                showToText("收到客户端：" + PadIpAddress + "/" + String.valueOf(PadPort) + "发送的心跳包。\n");
+                            continue;
+                        }
 
-                        // 如果是第一次进入，需要进行权限认证
-                        if(!PERMISSION){
-                            String mac = jsonObject.getString("MAC");
-                            if(devicesSet.contains(mac)) {
+                        JSONObject jsonObject = (JSONObject) JSONObject.parse(msg);
+                        // 如果是第一次登录，需要进行权限认证
+                        if (!PERMISSION) {
+                            String meid = jsonObject.getString("meid");
+                            String account = jsonObject.getString("account");
+                            String password = jsonObject.getString("password");
+                            if (DEBUG)
+                                showToText("account:" + account + "/password:" + password + "/meid:" + meid);
+                            JSONObject sendObject = new JSONObject();
+                            sendObject.put("id", CHECK);
+                            Pair<String, String> pair = devicesMap.get(account);
+                            if (devicesMap.containsKey(account) && pair != null && pair.first.equals(password) && pair.second.equals(meid)) {
                                 PERMISSION = true;
-                                JSONObject sendObject = new JSONObject();
-                                sendObject.put("CHECK",true);
+                                sendObject.put("data", true);
                                 sendmsg(sendObject.toJSONString());
+                                if (!socketMap.containsKey(PadIpAddress))
+                                    socketMap.put(PadIpAddress, this);
+                                if (DEBUG)
+                                    showToText("客户端 :" + PadIpAddress + "/" + String.valueOf(PadPort) + "加入；此时总连接：" + socketMap.size() + "。\n");
+                            } else {
+                                sendObject.put("data", false);
+                                sendmsg(sendObject.toJSONString());
+                                if (DEBUG)
+                                    showToText("客户端: " + PadIpAddress + "/" + String.valueOf(PadPort) + "权限认证失败，已强制退出。\n");
+                                throw new IOException();
                             }
-                        }else {
+                        } else {
                             int id = jsonObject.getIntValue("id");
                             switch (id) {
                                 case 0:
@@ -229,19 +266,8 @@ public class MainActivity extends AppCompatActivity {
                             }
                         }
                     }
-                    // 如果权限认证没有通过，那么拒绝登陆
-                    if(!PERMISSION) {
-                        if (DEBUG)
-                            LogTextView.append("客户端 :" + PadIpAddress + "/" + String.valueOf(PadPort) + "权限不足，已强制退出。\n");
-                        throw new IOException();
-                    }else{
-                        if(!socketMap.containsKey(PadIpAddress))
-                            socketMap.put(PadIpAddress, this);
-                    }
                 }
-            } catch (IOException e) {
-                if (DEBUG)
-                    LogTextView.append("客户端 :" + PadIpAddress + "/" + String.valueOf(PadPort) + "退出；此时总连接：" + socketMap.size() + "。\n");
+            } catch (Exception e) {
                 closeConn();
             }
         }
@@ -258,15 +284,19 @@ public class MainActivity extends AppCompatActivity {
             } catch (IOException e1) {
                 e1.printStackTrace();
             }
+            if (DEBUG)
+                showToText("客户端 :" + PadIpAddress + "/" + String.valueOf(PadPort) + "退出；此时总连接：" + socketMap.size() + "。\n");
         }
 
         // 发送消息
         void sendmsg(String msg) {
+            if (DEBUG)
+                showToText("向" + PadIpAddress + "/" + String.valueOf(PadPort) + "发送消息: " + msg);
             out.println(msg);
         }
     }
 
-    private void getDevicesSet(){
+    private void getDevicesMap(){
         try {
             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
             DocumentBuilder builder = factory.newDocumentBuilder();
@@ -276,13 +306,15 @@ public class MainActivity extends AppCompatActivity {
             Element rootElement = document.getDocumentElement();
 
             //获取一个Node(DOM基本的数据类型)集合 (route)
-            NodeList nodes = rootElement.getElementsByTagName("devices");
+            NodeList nodes = rootElement.getElementsByTagName("device");
             //遍历Note集合
             for (int i = 0; i < nodes.getLength(); i++) {
-                Node childNode = nodes.item(i);
-                if (childNode.getNodeType() == Node.ELEMENT_NODE) {
-                    devicesSet.add(childNode.getTextContent());
-                }
+                Element personElement = (Element) nodes.item(i);
+                NodeList nodeList = personElement.getChildNodes();
+                String meid = nodeList.item(1).getTextContent();
+                String account = nodeList.item(3).getTextContent();
+                String password = nodeList.item(5).getTextContent();
+                devicesMap.put(account, new Pair<>(password, meid));
             }
         } catch (NullPointerException e) {
             e.printStackTrace();
@@ -295,42 +327,12 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-//    /**
-//     * 创建Wifi热点
-//     */
-//    private void createWifiHotspot(String SSID, String password) {
-//        if (wifiManager.isWifiEnabled()) {
-//            //如果wifi处于打开状态，则关闭wifi,
-//            wifiManager.setWifiEnabled(false);
-//        }
-//        WifiConfiguration config = new WifiConfiguration();
-//        config.SSID = WIFI_HOTSPOT_SSID;
-//        config.preSharedKey = "123456789";
-//        config.hiddenSSID = true;
-//        config.allowedAuthAlgorithms
-//                .set(WifiConfiguration.AuthAlgorithm.OPEN);//开放系统认证
-//        config.allowedGroupCiphers.set(WifiConfiguration.GroupCipher.TKIP);
-//        config.allowedKeyManagement.set(WifiConfiguration.KeyMgmt.WPA_PSK);
-//        config.allowedPairwiseCiphers
-//                .set(WifiConfiguration.PairwiseCipher.TKIP);
-//        config.allowedGroupCiphers.set(WifiConfiguration.GroupCipher.CCMP);
-//        config.allowedPairwiseCiphers
-//                .set(WifiConfiguration.PairwiseCipher.CCMP);
-//        config.status = WifiConfiguration.Status.ENABLED;
-//        //通过反射调用设置热点
-//        try {
-//            Method method = wifiManager.getClass().getMethod(
-//                    "setWifiApEnabled", WifiConfiguration.class, Boolean.TYPE);
-//            boolean enable = (Boolean) method.invoke(wifiManager, config, true);
-//            if (enable) {
-//                textview.setText("热点已开启 SSID:" + WIFI_HOTSPOT_SSID + " password:123456789");
-//            } else {
-//                textview.setText("创建热点失败");
-//            }
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//            textview.setText("创建热点失败");
-//        }
-//    }
-
+    public void showToText(final String str){
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                LogTextView.append(str);
+            }
+        });
+    }
 }

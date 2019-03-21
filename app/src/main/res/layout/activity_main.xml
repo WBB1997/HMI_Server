@@ -11,6 +11,6 @@
         android:scrollbars="vertical"
         android:text=""
         android:id="@+id/LogTextView"
-        android:textSize="20sp" />
+        android:textSize="15sp" />
 
 </android.support.constraint.ConstraintLayout>
