@@ -5,9 +5,11 @@ import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.text.method.ScrollingMovementMethod;
 import android.util.Pair;
 import android.widget.TextView;
 
+import com.alibaba.fastjson.JSONException;
 import com.alibaba.fastjson.JSONObject;
 import com.wubeibei.hmi_server.transmit.Transmit;
 import com.wubeibei.hmi_server.util.LogUtil;
@@ -41,7 +43,6 @@ import javax.xml.parsers.ParserConfigurationException;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
-    private static final String CHECK = "1234";
     private Transmit transmit;
     private ServerSocket server = null;
     private static final int LOCAL_PORT = 5678;
@@ -61,7 +62,7 @@ public class MainActivity extends AppCompatActivity {
         transmit = Transmit.getInstance();
         transmit.setBlockingQueue(blockingQueue); //设置回调阻塞队列
         LogTextView = findViewById(R.id.LogTextView);
-//        LogTextView.setMovementMethod(ScrollingMovementMethod.getInstance());
+        LogTextView.setMovementMethod(ScrollingMovementMethod.getInstance());
         // 开启热点
 //        ApManager.openHotspot(this,"hmi_host","hmi_host");
 //        setWifiApEnabled(true);
@@ -154,7 +155,10 @@ public class MainActivity extends AppCompatActivity {
                         showToText("客户端 :" + client.getInetAddress().getHostAddress() + "/" + String.valueOf(client.getLocalPort()) + "重复登录。\n");
                     continue;
                 }
-                mExecutorService.execute(new Service(client));
+                if (DEBUG)
+                    showToText("客户端 :" + client.getInetAddress().getHostAddress() + "/" + String.valueOf(client.getPort()) + "请求连接。\n");
+//                mExecutorService.execute(new Service(client));
+                new Thread(new Service(client)).start();
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -178,6 +182,7 @@ public class MainActivity extends AppCompatActivity {
         private String PadIpAddress;
         private int PadPort;
         private boolean PERMISSION = false;
+        private static final int CHECK = 1234;
         private volatile long lastSendTime;
         private long HeartBeatTime = 5 * 60 * 1000;
         private Thread HeartBeatThread = new Thread(new Runnable() {
@@ -198,7 +203,10 @@ public class MainActivity extends AppCompatActivity {
                 in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                 out = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream())), true);
                 lastSendTime = System.currentTimeMillis();
-                HeartBeatThread.start();
+                if (DEBUG)
+                    showToText(PadIpAddress + "/" + String.valueOf(PadPort) + "构造方法调用完毕\n");
+                socketMap.put(PadIpAddress, this);
+//                HeartBeatThread.start();
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -217,22 +225,31 @@ public class MainActivity extends AppCompatActivity {
         public void run() {
             try {
                 while (true) {
+                    if (DEBUG)
+                        showToText(PadIpAddress + "/" + String.valueOf(PadPort) + "开始接受\n");
                     if ((msg = in.readLine()) != null) {
-                        if (msg.equals("ping") && PERMISSION) {
+                        if (DEBUG)
+                            showToText(PadIpAddress + "/" + String.valueOf(PadPort) + "发送消息: " + msg + "\n");
+                        if (msg.equals("ping")) {
                             lastSendTime = System.currentTimeMillis();
                             if (DEBUG)
                                 showToText("收到客户端：" + PadIpAddress + "/" + String.valueOf(PadPort) + "发送的心跳包。\n");
                             continue;
                         }
-
-                        JSONObject jsonObject = (JSONObject) JSONObject.parse(msg);
+                        JSONObject jsonObject;
+                        try {
+                            jsonObject = (JSONObject) JSONObject.parse(msg);
+                        }catch (JSONException e){
+                            e.printStackTrace();
+                            continue;
+                        }
                         // 如果是第一次登录，需要进行权限认证
                         if (!PERMISSION) {
                             String meid = jsonObject.getString("meid");
                             String account = jsonObject.getString("account");
                             String password = jsonObject.getString("password");
                             if (DEBUG)
-                                showToText("account:" + account + "/password:" + password + "/meid:" + meid);
+                                showToText("account:" + account + "/password:" + password + "/meid:" + meid + "\n");
                             JSONObject sendObject = new JSONObject();
                             sendObject.put("id", CHECK);
                             Pair<String, String> pair = devicesMap.get(account);
@@ -240,8 +257,6 @@ public class MainActivity extends AppCompatActivity {
                                 PERMISSION = true;
                                 sendObject.put("data", true);
                                 sendmsg(sendObject.toJSONString());
-                                if (!socketMap.containsKey(PadIpAddress))
-                                    socketMap.put(PadIpAddress, this);
                                 if (DEBUG)
                                     showToText("客户端 :" + PadIpAddress + "/" + String.valueOf(PadPort) + "加入；此时总连接：" + socketMap.size() + "。\n");
                             } else {
@@ -268,6 +283,7 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
             } catch (Exception e) {
+                e.printStackTrace();
                 closeConn();
             }
         }
@@ -291,7 +307,7 @@ public class MainActivity extends AppCompatActivity {
         // 发送消息
         void sendmsg(String msg) {
             if (DEBUG)
-                showToText("向" + PadIpAddress + "/" + String.valueOf(PadPort) + "发送消息: " + msg);
+                showToText("向" + PadIpAddress + "/" + String.valueOf(PadPort) + "发送消息: " + msg + "\n");
             out.println(msg);
         }
     }
