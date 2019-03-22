@@ -25,13 +25,13 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="4"
-            tools:ignore="MissingConstraints" />
+            android:inputType="number" />
         <EditText
             android:id="@+id/data"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="4"
-            tools:ignore="MissingConstraints" />
+            android:inputType="text" />
 
         <Button
             android:id="@+id/button"

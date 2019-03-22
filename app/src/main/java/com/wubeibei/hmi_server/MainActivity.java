@@ -75,8 +75,8 @@ public class MainActivity extends AppCompatActivity {
         button.setText("发送");
         Id = findViewById(R.id.id);
         Data = findViewById(R.id.data);
-        Id.setText("52");
-        Data.setText("1");
+        Id.setText("87");
+        Data.setText("0");
         button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -89,7 +89,7 @@ public class MainActivity extends AppCompatActivity {
                     new Thread(new Runnable() {
                         @Override
                         public void run() {
-                            value.sendmsg("{\"id\":" + Integer.getInteger(str_Id) + ",\"data\":" + Integer.getInteger(str_Data) + "}");
+                            value.sendmsg("{\"id\":" + str_Id + ",\"data\":" + str_Data + "}");
                         }
                     }).start();
                 }
@@ -328,38 +328,6 @@ public class MainActivity extends AppCompatActivity {
                                 continue;
                         }
                         lastSendTime = System.currentTimeMillis();
-//                        // 如果是第一次登录，需要进行权限认证
-//                        if (!PERMISSION) {
-//                            JSONObject sendObject = new JSONObject();
-//                            sendObject.put("id", CHECK);
-//                            if (checkAccount(jsonObject)) {
-//                                PERMISSION = true;
-//                                sendObject.put("data", true);
-//                                sendmsg(sendObject.toJSONString());
-//                                socketMap.put(PadIpAddress, this);
-//                                if (DEBUG)
-//                                    showToText("客户端 :" + PadIpAddress + "/" + String.valueOf(PadPort) + "加入；此时总连接：" + socketMap.size() + "。\n");
-//                            } else {
-//                                sendObject.put("data", false);
-//                                sendmsg(sendObject.toJSONString());
-//                                if (DEBUG)
-//                                    showToText("客户端: " + PadIpAddress + "/" + String.valueOf(PadPort) + "权限认证失败，已强制退出。\n");
-//                                throw new IOException();
-//                            }
-//                        } else {
-//                            lastSendTime = System.currentTimeMillis();
-//                            switch (jsonObject.getIntValue("id")) {
-//                                case 0:
-//                                    transmit.setADAndRCUFlag(jsonObject.getBooleanValue("data"));
-//                                    break;
-//                                case 1:
-//                                    JSONObject data = jsonObject.getJSONObject("data");
-//                                    transmit.HostToCAN(data.getString("clazz"), data.getIntValue("field"), data.get("o"));
-//                                    break;
-//                                default:
-//                                    break;
-//                            }
-//                        }
                     }else
                         closeConn();
                 }
@@ -433,11 +401,17 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private static int textNum = 0;
     public void showToText(final String str){
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
+                if(textNum > 50) {
+                    textNum = 0;
+                    LogTextView.setText("");
+                }
                 LogTextView.append(str);
+                textNum++;
             }
         });
     }
