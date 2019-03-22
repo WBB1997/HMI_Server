@@ -56,7 +56,8 @@ public class MainActivity extends AppCompatActivity {
     private final BlockingQueue<JSONObject> blockingQueue = new LinkedBlockingQueue<>(); // 消息队列
 
     private TextView LogTextView;
-    private EditText editText;
+    private EditText Id;
+    private EditText Data;
 
     private static final int First_Login = 1;
     private static final int Secondary_login = 2;
@@ -72,20 +73,23 @@ public class MainActivity extends AppCompatActivity {
         LogTextView.setMovementMethod(ScrollingMovementMethod.getInstance());
         Button button = findViewById(R.id.button);
         button.setText("发送");
-        editText = findViewById(R.id.edit);
-        editText.setText("{\"id\":52,\"data\":1}");
+        Id = findViewById(R.id.id);
+        Data = findViewById(R.id.data);
+        Id.setText("52");
+        Data.setText("1");
         button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 Iterator<Map.Entry<String, Service>> it = socketMap.entrySet().iterator();
-                final String str = editText.getText().toString();
+                final String str_Id = Id.getText().toString();
+                final String str_Data = Data.getText().toString();
                 while (it.hasNext()) {
                     Map.Entry<String, Service> entry = it.next();
                     final Service value = entry.getValue();
                     new Thread(new Runnable() {
                         @Override
                         public void run() {
-                            value.sendmsg(str);
+                            value.sendmsg("{\"id\":" + Integer.getInteger(str_Id) + ",\"data\":" + Integer.getInteger(str_Data) + "}");
                         }
                     }).start();
                 }
