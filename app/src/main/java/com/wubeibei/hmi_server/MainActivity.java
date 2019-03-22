@@ -58,6 +58,10 @@ public class MainActivity extends AppCompatActivity {
     private TextView LogTextView;
     private EditText editText;
 
+    private static final int First_Login = 1;
+    private static final int Secondary_login = 2;
+    private static final int Other = 3;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -182,11 +186,11 @@ public class MainActivity extends AppCompatActivity {
                 if(socketMap.containsKey(client.getInetAddress().getHostAddress())) {
                     if (DEBUG)
                         showToText("客户端 :" + client.getInetAddress().getHostAddress() + "/" + String.valueOf(client.getLocalPort()) + "重复登录。\n");
-                    continue;
+                }else {
+                    if (DEBUG)
+                        showToText("客户端 :" + client.getInetAddress().getHostAddress() + "/" + String.valueOf(client.getPort()) + "请求连接。\n");
+                    mExecutorService.execute(new Service(client));
                 }
-                if (DEBUG)
-                    showToText("客户端 :" + client.getInetAddress().getHostAddress() + "/" + String.valueOf(client.getPort()) + "请求连接。\n");
-                mExecutorService.execute(new Service(client));
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -209,7 +213,6 @@ public class MainActivity extends AppCompatActivity {
         private String msg = "";
         private String PadIpAddress;
         private int PadPort;
-        private boolean PERMISSION = false;
         private static final int CHECK = 1234;
         private volatile long lastSendTime;
         private long HeartBeatTime = 30 * 1000;
@@ -266,58 +269,93 @@ public class MainActivity extends AppCompatActivity {
                     if ((msg = in.readLine()) != null) {
                         if (DEBUG)
                             showToText(PadIpAddress + "/" + String.valueOf(PadPort) + "发送消息: " + msg + "\n");
-                        if (msg.equals("ping")) {
-                            lastSendTime = System.currentTimeMillis();
-                            if (DEBUG)
-                                showToText("收到客户端：" + PadIpAddress + "/" + String.valueOf(PadPort) + "发送的心跳包。当前时间戳：" + lastSendTime +"\n");
-                            continue;
-                        }
                         JSONObject jsonObject;
                         try {
                             jsonObject = (JSONObject) JSONObject.parse(msg);
                         }catch (JSONException e){
                             e.printStackTrace();
+                            lastSendTime = System.currentTimeMillis();
+                            if (DEBUG)
+                                showToText("收到客户端：" + PadIpAddress + "/" + String.valueOf(PadPort) + "发送的心跳包。当前时间戳：" + lastSendTime +"\n");
                             continue;
                         }
-                        // 如果是第一次登录，需要进行权限认证
-                        if (!PERMISSION) {
-                            String meid = jsonObject.getString("meid");
-                            String account = jsonObject.getString("account");
-                            String password = jsonObject.getString("password");
-                            if (DEBUG)
-                                showToText("account:" + account + "/password:" + password + "/meid:" + meid + "\n");
-                            JSONObject sendObject = new JSONObject();
-                            sendObject.put("id", CHECK);
-                            Pair<String, String> pair = devicesMap.get(account);
-                            if (devicesMap.containsKey(account) && pair != null && pair.first.equals(password) && pair.second.equals(meid)) {
-                                PERMISSION = true;
-                                sendObject.put("data", true);
+                        int flag = jsonObject.getIntValue("flag");
+                        switch (flag) {
+                            case First_Login:
+                                JSONObject sendObject = new JSONObject();
+                                sendObject.put("id", CHECK);
+                                if (checkAccount(jsonObject)) {
+                                    sendObject.put("data", true);
+                                    sendmsg(sendObject.toJSONString());
+                                    socketMap.put(PadIpAddress, this);
+                                    if (DEBUG)
+                                        showToText("客户端 :" + PadIpAddress + "/" + String.valueOf(PadPort) + "加入；此时总连接：" + socketMap.size() + "。\n");
+                                } else {
+                                    sendObject.put("data", false);
+                                    sendmsg(sendObject.toJSONString());
+                                    if (DEBUG)
+                                        showToText("客户端: " + PadIpAddress + "/" + String.valueOf(PadPort) + "权限认证失败，已强制退出。\n");
+                                    throw new IOException();
+                                }
+                                break;
+                            case Secondary_login:
+                                sendObject = new JSONObject();
+                                sendObject.put("id", CHECK);
+                                boolean PERMISSION = false;
+                                if (checkAccount(jsonObject))
+                                    PERMISSION = true;
+                                sendObject.put("data", PERMISSION);
                                 sendmsg(sendObject.toJSONString());
-                                socketMap.put(PadIpAddress, this);
-                                if (DEBUG)
-                                    showToText("客户端 :" + PadIpAddress + "/" + String.valueOf(PadPort) + "加入；此时总连接：" + socketMap.size() + "。\n");
-                            } else {
-                                sendObject.put("data", false);
-                                sendmsg(sendObject.toJSONString());
-                                if (DEBUG)
-                                    showToText("客户端: " + PadIpAddress + "/" + String.valueOf(PadPort) + "权限认证失败，已强制退出。\n");
-                                throw new IOException();
-                            }
-                        } else {
-                            lastSendTime = System.currentTimeMillis();
-                            int id = jsonObject.getIntValue("id");
-                            switch (id) {
-                                case 0:
-                                    transmit.setADAndRCUFlag(jsonObject.getBooleanValue("data"));
-                                    break;
-                                case 1:
-                                    JSONObject data = jsonObject.getJSONObject("data");
-                                    transmit.HostToCAN(data.getString("clazz"), data.getIntValue("field"), data.get("o"));
-                                    break;
-                                default:
-                                    break;
-                            }
+                                break;
+                            case Other:
+                                switch (jsonObject.getIntValue("id")) {
+                                    case 0:
+                                        transmit.setADAndRCUFlag(jsonObject.getBooleanValue("data"));
+                                        break;
+                                    case 1:
+                                        JSONObject data = jsonObject.getJSONObject("data");
+                                        transmit.HostToCAN(data.getString("clazz"), data.getIntValue("field"), data.get("o"));
+                                        break;
+                                    default:
+                                        break;
+                                }
+                                break;
+                            default:
+                                continue;
                         }
+                        lastSendTime = System.currentTimeMillis();
+//                        // 如果是第一次登录，需要进行权限认证
+//                        if (!PERMISSION) {
+//                            JSONObject sendObject = new JSONObject();
+//                            sendObject.put("id", CHECK);
+//                            if (checkAccount(jsonObject)) {
+//                                PERMISSION = true;
+//                                sendObject.put("data", true);
+//                                sendmsg(sendObject.toJSONString());
+//                                socketMap.put(PadIpAddress, this);
+//                                if (DEBUG)
+//                                    showToText("客户端 :" + PadIpAddress + "/" + String.valueOf(PadPort) + "加入；此时总连接：" + socketMap.size() + "。\n");
+//                            } else {
+//                                sendObject.put("data", false);
+//                                sendmsg(sendObject.toJSONString());
+//                                if (DEBUG)
+//                                    showToText("客户端: " + PadIpAddress + "/" + String.valueOf(PadPort) + "权限认证失败，已强制退出。\n");
+//                                throw new IOException();
+//                            }
+//                        } else {
+//                            lastSendTime = System.currentTimeMillis();
+//                            switch (jsonObject.getIntValue("id")) {
+//                                case 0:
+//                                    transmit.setADAndRCUFlag(jsonObject.getBooleanValue("data"));
+//                                    break;
+//                                case 1:
+//                                    JSONObject data = jsonObject.getJSONObject("data");
+//                                    transmit.HostToCAN(data.getString("clazz"), data.getIntValue("field"), data.get("o"));
+//                                    break;
+//                                default:
+//                                    break;
+//                            }
+//                        }
                     }else
                         closeConn();
                 }
@@ -404,5 +442,13 @@ public class MainActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         mExecutorService.shutdown();
+    }
+
+    public boolean checkAccount(JSONObject jsonObject){
+        String meid = jsonObject.getString("meid");
+        String account = jsonObject.getString("account");
+        String password = jsonObject.getString("password");
+        Pair<String, String> pair = devicesMap.get(account);
+        return devicesMap.containsKey(account) && pair != null && pair.first.equals(password) && pair.second.equals(meid);
     }
 }

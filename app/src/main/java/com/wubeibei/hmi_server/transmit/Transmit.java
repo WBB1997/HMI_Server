@@ -1,6 +1,5 @@
 package com.wubeibei.hmi_server.transmit;
 
-import android.util.Log;
 import android.util.Pair;
 
 import com.alibaba.fastjson.JSONObject;
@@ -64,7 +63,6 @@ public class Transmit {
     private final static String TAG = "Transmit";
     private final static int MESSAGELENGTH = 14;
     private final static int CAN_PORT = 4001;   // CAN总线端口号
-    private final static int LOCAL_PORT = 4001;   // 本机监听端口号
     private final static int LEFT_DOOR_PORT = 5556; // 左车门端口号
     private final static int RIGHT_DOOR_PORT = 5556; // 右车门端口号
     private final static int FRONT_DOOR_PORT = 5556; // 前风挡端口号
