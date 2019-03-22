@@ -7,12 +7,14 @@ import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.text.method.ScrollingMovementMethod;
 import android.util.Pair;
+import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
 import android.widget.TextView;
 
 import com.alibaba.fastjson.JSONException;
 import com.alibaba.fastjson.JSONObject;
 import com.wubeibei.hmi_server.transmit.Transmit;
-import com.wubeibei.hmi_server.util.LogUtil;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -54,6 +56,7 @@ public class MainActivity extends AppCompatActivity {
     private final BlockingQueue<JSONObject> blockingQueue = new LinkedBlockingQueue<>(); // 消息队列
 
     private TextView LogTextView;
+    private EditText editText;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -63,6 +66,27 @@ public class MainActivity extends AppCompatActivity {
         transmit.setBlockingQueue(blockingQueue); //设置回调阻塞队列
         LogTextView = findViewById(R.id.LogTextView);
         LogTextView.setMovementMethod(ScrollingMovementMethod.getInstance());
+        Button button = findViewById(R.id.button);
+        button.setText("发送");
+        editText = findViewById(R.id.edit);
+        editText.setText("{\"id\":52,\"data\":1}");
+        button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Iterator<Map.Entry<String, Service>> it = socketMap.entrySet().iterator();
+                final String str = editText.getText().toString();
+                while (it.hasNext()) {
+                    Map.Entry<String, Service> entry = it.next();
+                    final Service value = entry.getValue();
+                    new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            value.sendmsg(str);
+                        }
+                    }).start();
+                }
+            }
+        });
         // 开启热点
 //        ApManager.openHotspot(this,"hmi_host","hmi_host");
 //        setWifiApEnabled(true);
@@ -123,16 +147,21 @@ public class MainActivity extends AppCompatActivity {
             public void run() {
                 while (true) {
                     try {
-                        JSONObject object = blockingQueue.take();
+                        final JSONObject object = blockingQueue.take();
                         if (DEBUG)
                             showToText("收到CAN总线发往Pad的消息" + object.toString() + "。\n");
                         Iterator<Map.Entry<String, Service>> it = socketMap.entrySet().iterator();
                         while (it.hasNext()) {
                             Map.Entry<String, Service> entry = it.next();
-                            Service value = entry.getValue();
+                            final Service value = entry.getValue();
                             if (DEBUG)
                                 showToText("向" + value.getPadIpAddress() + "/" + value.getPadPort() + "发送：" + object.toString() + "。\n");
-                            value.sendmsg(object.toJSONString());
+                            new Thread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    value.sendmsg(object.toJSONString());
+                                }
+                            }).start();
                         }
                     } catch (InterruptedException e) {
                         e.printStackTrace();
@@ -157,8 +186,7 @@ public class MainActivity extends AppCompatActivity {
                 }
                 if (DEBUG)
                     showToText("客户端 :" + client.getInetAddress().getHostAddress() + "/" + String.valueOf(client.getPort()) + "请求连接。\n");
-//                mExecutorService.execute(new Service(client));
-                new Thread(new Service(client)).start();
+                mExecutorService.execute(new Service(client));
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -184,14 +212,23 @@ public class MainActivity extends AppCompatActivity {
         private boolean PERMISSION = false;
         private static final int CHECK = 1234;
         private volatile long lastSendTime;
-        private long HeartBeatTime = 5 * 60 * 1000;
+        private long HeartBeatTime = 30 * 1000;
         private Thread HeartBeatThread = new Thread(new Runnable() {
             @Override
             public void run() {
-                while (System.currentTimeMillis() - lastSendTime < HeartBeatTime);
-                if (DEBUG)
-                    showToText("客户端 :" + PadIpAddress + "/" + String.valueOf(PadPort) + "因为5分钟之内没有发送消息，自动断开连接\n");
-                closeConn();
+                try {
+                    while (true) {
+                        Thread.sleep(HeartBeatTime);
+                        long differ = System.currentTimeMillis() - lastSendTime;
+                        if (differ > HeartBeatTime) {
+                            if (DEBUG)
+                                showToText("客户端 :" + PadIpAddress + "/" + String.valueOf(PadPort) + "因为5分钟之内没有发送消息，自动断开连接\n当前时间差：" + String.valueOf(differ) +"\n");
+                            closeConn();
+                        }
+                    }
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
             }
         });
 
@@ -205,8 +242,7 @@ public class MainActivity extends AppCompatActivity {
                 lastSendTime = System.currentTimeMillis();
                 if (DEBUG)
                     showToText(PadIpAddress + "/" + String.valueOf(PadPort) + "构造方法调用完毕\n");
-                socketMap.put(PadIpAddress, this);
-//                HeartBeatThread.start();
+                HeartBeatThread.start();
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -233,7 +269,7 @@ public class MainActivity extends AppCompatActivity {
                         if (msg.equals("ping")) {
                             lastSendTime = System.currentTimeMillis();
                             if (DEBUG)
-                                showToText("收到客户端：" + PadIpAddress + "/" + String.valueOf(PadPort) + "发送的心跳包。\n");
+                                showToText("收到客户端：" + PadIpAddress + "/" + String.valueOf(PadPort) + "发送的心跳包。当前时间戳：" + lastSendTime +"\n");
                             continue;
                         }
                         JSONObject jsonObject;
@@ -257,6 +293,7 @@ public class MainActivity extends AppCompatActivity {
                                 PERMISSION = true;
                                 sendObject.put("data", true);
                                 sendmsg(sendObject.toJSONString());
+                                socketMap.put(PadIpAddress, this);
                                 if (DEBUG)
                                     showToText("客户端 :" + PadIpAddress + "/" + String.valueOf(PadPort) + "加入；此时总连接：" + socketMap.size() + "。\n");
                             } else {
@@ -267,6 +304,7 @@ public class MainActivity extends AppCompatActivity {
                                 throw new IOException();
                             }
                         } else {
+                            lastSendTime = System.currentTimeMillis();
                             int id = jsonObject.getIntValue("id");
                             switch (id) {
                                 case 0:
@@ -280,7 +318,8 @@ public class MainActivity extends AppCompatActivity {
                                     break;
                             }
                         }
-                    }
+                    }else
+                        closeConn();
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -290,6 +329,10 @@ public class MainActivity extends AppCompatActivity {
 
         private void closeConn(){
             socketMap.remove(PadIpAddress);
+            JSONObject object = new JSONObject();
+            object.put("id",2345);
+            object.put("data",false);
+            sendmsg(object.toJSONString());
             try {
                 if (out != null)
                     out.close();
@@ -297,6 +340,11 @@ public class MainActivity extends AppCompatActivity {
                     in.close();
                 if (socket != null)
                     socket.close();
+                if(HeartBeatThread.isAlive()) {
+                    HeartBeatThread.interrupt();
+                    if (DEBUG)
+                        showToText("心跳包线程已退出\n");
+                }
             } catch (IOException e1) {
                 e1.printStackTrace();
             }
@@ -350,5 +398,11 @@ public class MainActivity extends AppCompatActivity {
                 LogTextView.append(str);
             }
         });
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        mExecutorService.shutdown();
     }
 }
