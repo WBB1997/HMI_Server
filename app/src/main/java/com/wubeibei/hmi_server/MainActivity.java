@@ -15,6 +15,7 @@ import android.widget.TextView;
 import com.alibaba.fastjson.JSONException;
 import com.alibaba.fastjson.JSONObject;
 import com.wubeibei.hmi_server.transmit.Transmit;
+import com.wubeibei.hmi_server.util.ApManager;
 import com.wubeibei.hmi_server.util.CrashHandler;
 
 import org.w3c.dom.Document;
@@ -99,8 +100,8 @@ public class MainActivity extends AppCompatActivity {
         CrashHandler crashHandler = CrashHandler.getInstance();
         crashHandler.init(this);
         // 开启热点
-//        ApManager.openHotspot(this,"hmi_host","hmi_host");
-//        setWifiApEnabled(true);
+        ApManager.openHotspot(this,"hmi_host","hmi_host");
+        setWifiApEnabled(true);
         init();
     }
 
