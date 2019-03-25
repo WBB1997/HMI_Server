@@ -218,6 +218,7 @@ public class MainActivity extends AppCompatActivity {
         private String PadIpAddress;
         private int PadPort;
         private static final int CHECK = 1234;
+        private boolean LoginSuccess = false;
         private volatile long lastSendTime;
         private long HeartBeatTime = 30 * 1000;
         private Thread HeartBeatThread = new Thread(new Runnable() {
@@ -293,13 +294,14 @@ public class MainActivity extends AppCompatActivity {
                                     sendmsg(sendObject.toJSONString());
                                     socketMap.put(PadIpAddress, this);
                                     if (DEBUG)
-                                        showToText("客户端 :" + PadIpAddress + "/" + String.valueOf(PadPort) + "加入；此时总连接：" + socketMap.size() + "。\n");
+                                        showToText("客户端 :" + PadIpAddress + "/" + String.valueOf(PadPort) + "登录成功；此时总连接：" + socketMap.size() + "。\n");
+                                    LoginSuccess = true;
                                 } else {
                                     sendObject.put("data", false);
                                     sendmsg(sendObject.toJSONString());
                                     if (DEBUG)
-                                        showToText("客户端: " + PadIpAddress + "/" + String.valueOf(PadPort) + "权限认证失败，已强制退出。\n");
-                                    throw new IOException();
+                                        showToText("客户端: " + PadIpAddress + "/" + String.valueOf(PadPort) + "权限认证失败\n");
+//                                    throw new IOException();
                                 }
                                 break;
                             case Secondary_login:
@@ -312,6 +314,8 @@ public class MainActivity extends AppCompatActivity {
                                 sendmsg(sendObject.toJSONString());
                                 break;
                             case Other:
+                                if(!LoginSuccess)
+                                    break;
                                 switch (jsonObject.getIntValue("id")) {
                                     case 0:
                                         transmit.setADAndRCUFlag(jsonObject.getBooleanValue("data"));
@@ -328,8 +332,11 @@ public class MainActivity extends AppCompatActivity {
                                 continue;
                         }
                         lastSendTime = System.currentTimeMillis();
-                    }else
+                    }else {
+                        if (DEBUG)
+                            showToText(PadIpAddress + "/" + String.valueOf(PadPort) + "发送消息为空" + "\n");
                         closeConn();
+                    }
                 }
             } catch (Exception e) {
                 e.printStackTrace();
