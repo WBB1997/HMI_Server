@@ -24,6 +24,8 @@ import static com.wubeibei.hmi_server.transmit.bean.IntegerCommand.HMI_Dig_Ord_T
 import static com.wubeibei.hmi_server.transmit.bean.IntegerCommand.HMI_Dig_Ord_air_grade;
 import static com.wubeibei.hmi_server.transmit.bean.IntegerCommand.HMI_Dig_Ord_air_model;
 import static com.wubeibei.hmi_server.transmit.bean.IntegerCommand.HMI_Dig_Ord_eBooster_Warning;
+import static com.wubeibei.hmi_server.transmit.bean.IntegerCommand.HMI_Dig_ProjectorModeSetting;
+import static com.wubeibei.hmi_server.transmit.bean.IntegerCommand.HMI_Dig_ProjectorVolumnSetting;
 import static com.wubeibei.hmi_server.util.ByteUtil.countBits;
 import static com.wubeibei.hmi_server.util.ByteUtil.setBits;
 
@@ -66,18 +68,15 @@ public class HMI extends BaseClass {
     public static final int Ord_SystemRuningStatus_ERROR = 2; // 故障
     public static final int Ord_SystemRuningStatus_AWAIT = 3; // 预留
 
-    //
-//    private Map<String, ? super BaseClass> NAME_AND_CLASS;
+    // 侧风窗
+    public static final int HMI_Dig_ProjectorModeSetting_LOCAL = 0; // 本地输入播放
+    public static final int HMI_Dig_ProjectorModeSetting_REMOTE = 1; // 外部输入播放
+    public static final int HMI_Dig_ProjectorVolumnSetting_SILENCE = 0; // 静音
 
 
     public HMI() {
     }
 
-//    public void setNAME_AND_CLASS(Map<String, ? super BaseClass> NAME_AND_CLASS) {
-//        this.NAME_AND_CLASS = NAME_AND_CLASS;
-//    }
-
-    //    private byte[] bytes = {(byte) 0xFF, (byte) 0xAA, 0x03, (byte) 0x83, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x02};
     private volatile byte[] bytes = {(byte) 0xFF, (byte) 0xAA, 0x03, (byte) 0x83, 0x00, (byte) 0x80, 0x1B, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x02};
 
     public synchronized void changeStatus(int command, Object status) {
@@ -138,6 +137,12 @@ public class HMI extends BaseClass {
             case HMI_Dig_Ord_SystemRuningStatus:
                 setBits(bytes, (int) status, offset, 36, 2, getState());
                 break;
+            case HMI_Dig_ProjectorModeSetting:
+                setBits(bytes, (int) status, offset, 61, 1, getState());
+                break;
+            case HMI_Dig_ProjectorVolumnSetting:
+                setBits(bytes, (int) status, offset, 56, 5, getState());
+                break;
             default:
                 LogUtil.d(TAG, "消息转换错误");
                 break;
@@ -153,6 +158,8 @@ public class HMI extends BaseClass {
         setBits(bytes, (int) countBits(first, offset, 24, 8, getState()), offset, 24, 8, getState());
         setBits(bytes, (int) countBits(first, offset, 48, 20, getState()), offset, 48, 20, getState());
         setBits(bytes, (int) countBits(first, offset, 36, 2, getState()), offset, 36, 2, getState());
+        setBits(bytes, (int) countBits(first, offset, 61, 1, getState()), offset, 61, 1, getState());
+        setBits(bytes, (int) countBits(first, offset, 56, 5, getState()), offset, 56, 5, getState());
         System.arraycopy(bytes, 0, second, 0, second.length);
         return new Pair<>(first, second);
     }

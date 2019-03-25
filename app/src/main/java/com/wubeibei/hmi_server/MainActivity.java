@@ -423,6 +423,10 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    private void closeAllConn(){
+
+    }
+
     @Override
     protected void onDestroy() {
         super.onDestroy();

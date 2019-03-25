@@ -37,7 +37,7 @@ public class VCU4 extends BaseClass {
         int index = entry.getKey();
         switch (index) {
             case 16:
-                return countBits(bytes, 0, index, 16, ByteUtil.Intel);
+                return countBits(bytes, 0, index, 16, ByteUtil.Intel) * 0.1;
             default:
                 LogUtil.d(TAG, "数据下标错误");
         }
