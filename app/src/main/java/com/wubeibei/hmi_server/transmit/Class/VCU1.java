@@ -15,7 +15,7 @@ public class VCU1 extends BaseClass {
     private HashMap<Integer, MyPair<Integer>> fields = new HashMap<Integer, MyPair<Integer>>(){{
         put(33,new MyPair<>(2, IntegerCommand.VCU_ACWorkingStatus, SendFlag.LOCALHOST)); // 空调工作模式信号;
     }};
-    private byte[] bytes = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+    private byte[] bytes = {0x00, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00};
 
     @Override
     public byte[] getBytes() {

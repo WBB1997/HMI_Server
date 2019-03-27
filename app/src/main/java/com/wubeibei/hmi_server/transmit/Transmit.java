@@ -68,9 +68,9 @@ public class Transmit {
     private final static int FRONT_DOOR_PORT = 5556; // 前风挡端口号
 
     private final static String CAN_IP = "192.168.1.60"; // CAN总线IP地址
-    private final static String LEFT_DOOR_IP = "192.168.1.40"; // 左车门IP地址
-    private final static String RIGHT_DOOR_IP = "192.168.1.20"; // 右车门IP地址
-    private final static String FRONT_DOOR_IP = "192.168.1.10"; // 前风挡IP地址
+    private final static String LEFT_DOOR_IP = "192.168.1.50"; // 左车门IP地址
+    private final static String RIGHT_DOOR_IP = "192.168.1.40"; // 右车门IP地址
+    private final static String FRONT_DOOR_IP = "192.168.1.20"; // 前风挡IP地址
 
     private boolean threadFlag = true; // 接收线程是否关闭
     private BlockingQueue<JSONObject> blockingQueue;// 消息队列
@@ -100,6 +100,22 @@ public class Transmit {
     public void setADAndRCUFlag(boolean flag) {
         try {
             ((BaseClass) Objects.requireNonNull(NAME_AND_CLASS.get("HMI"))).setFlag(flag);
+        }catch (NullPointerException e){
+            e.printStackTrace();
+        }
+    }
+
+    public void setOtherFlag(boolean flag) {
+        try {
+            for(int i = 0; i < list.size(); i++) {
+                Pair<String, ? extends BaseClass> element = list.get(i);
+                if (element.first.equals("00000361") ||
+                        element.first.equals("00000235") ||
+                        element.first.equals("00000260") ||
+                        element.first.equals("00000222") ||
+                        element.first.equals("00000465"))
+                    element.second.setFlag(flag);
+            }
         }catch (NullPointerException e){
             e.printStackTrace();
         }

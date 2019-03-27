@@ -3,6 +3,7 @@ package com.wubeibei.hmi_server.transmit.Class;
 import com.alibaba.fastjson.JSONObject;
 import com.wubeibei.hmi_server.transmit.Transmit;
 import com.wubeibei.hmi_server.util.ByteUtil;
+import com.wubeibei.hmi_server.util.LogUtil;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -14,9 +15,12 @@ public abstract class BaseClass {
     private boolean flag = true;
     public abstract byte[] getBytes();
     public abstract String getTAG();
-    public void setFlag(boolean flag){
+    public void setFlag(boolean flag) {
         this.flag = flag;
+        if (flag)
+            setBytes(getBytes());
     }
+
     public void setBytes(byte[] bytes){
         String TAG = getTAG();
         int state = getState();
@@ -39,7 +43,7 @@ public abstract class BaseClass {
                 // 发回主函数
                 Transmit.getInstance().sendToPad(jsonObject, target);
                 // debug
-//                    LogUtil.d(TAG, jsonObject.toJSONString());
+                LogUtil.d(TAG, jsonObject.toJSONString());
             }
         }
         flag = false;

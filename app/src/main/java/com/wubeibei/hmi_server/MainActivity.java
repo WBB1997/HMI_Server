@@ -15,7 +15,6 @@ import android.widget.TextView;
 import com.alibaba.fastjson.JSONException;
 import com.alibaba.fastjson.JSONObject;
 import com.wubeibei.hmi_server.transmit.Transmit;
-import com.wubeibei.hmi_server.util.ApManager;
 import com.wubeibei.hmi_server.util.CrashHandler;
 
 import org.w3c.dom.Document;
@@ -29,6 +28,8 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -85,8 +86,7 @@ public class MainActivity extends AppCompatActivity {
                 Iterator<Map.Entry<String, Service>> it = socketMap.entrySet().iterator();
                 final String str_Id = Id.getText().toString();
                 final String str_Data = Data.getText().toString();
-                while (it.hasNext()) {
-                    Map.Entry<String, Service> entry = it.next();
+                for (Map.Entry<String, Service> entry : socketMap.entrySet()) {
                     final Service value = entry.getValue();
                     new Thread(new Runnable() {
                         @Override
@@ -100,7 +100,6 @@ public class MainActivity extends AppCompatActivity {
         CrashHandler crashHandler = CrashHandler.getInstance();
         crashHandler.init(this);
         // 开启热点
-        ApManager.openHotspot(this,"hmi_host","hmi_host");
         setWifiApEnabled(true);
         init();
     }
@@ -117,6 +116,8 @@ public class MainActivity extends AppCompatActivity {
             //wifi和热点不能同时打开，所以打开热点的时候需要关闭wifi
             wifiManager.setWifiEnabled(false);
         }
+        if(isWifiApOpen(this))
+            return;
         try {
             WifiConfiguration apConfig = new WifiConfiguration();
             //配置热点的名称
@@ -131,6 +132,35 @@ public class MainActivity extends AppCompatActivity {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    public boolean isWifiApOpen(Context context) {
+        try {
+            WifiManager manager = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
+            //通过放射获取 getWifiApState()方法
+            Method method = manager.getClass().getDeclaredMethod("getWifiApState");
+            //调用getWifiApState() ，获取返回值
+            int state = (int) method.invoke(manager);
+            //通过放射获取 WIFI_AP的开启状态属性
+            Field field = manager.getClass().getDeclaredField("WIFI_AP_STATE_ENABLED");
+            //获取属性值
+            int value = (int) field.get(manager);
+            //判断是否开启
+            if (state == value) {
+                return true;
+            } else {
+                return false;
+            }
+        } catch (NoSuchMethodException e) {
+            e.printStackTrace();
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } catch (InvocationTargetException e) {
+            e.printStackTrace();
+        } catch (NoSuchFieldException e) {
+            e.printStackTrace();
+        }
+        return false;
     }
 
     // 开启收发线程
@@ -162,9 +192,7 @@ public class MainActivity extends AppCompatActivity {
                         final JSONObject object = blockingQueue.take();
                         if (DEBUG)
                             showToText("收到CAN总线发往Pad的消息" + object.toString() + "。\n");
-                        Iterator<Map.Entry<String, Service>> it = socketMap.entrySet().iterator();
-                        while (it.hasNext()) {
-                            Map.Entry<String, Service> entry = it.next();
+                        for (Map.Entry<String, Service> entry : socketMap.entrySet()) {
                             final Service value = entry.getValue();
                             if (DEBUG)
                                 showToText("向" + value.getPadIpAddress() + "/" + value.getPadPort() + "发送：" + object.toString() + "。\n");
@@ -191,14 +219,9 @@ public class MainActivity extends AppCompatActivity {
             while (true) {
                 Socket client;
                 client = server.accept();
-                if(socketMap.containsKey(client.getInetAddress().getHostAddress())) {
-                    if (DEBUG)
-                        showToText("客户端 :" + client.getInetAddress().getHostAddress() + "/" + String.valueOf(client.getLocalPort()) + "重复登录。\n");
-                }else {
-                    if (DEBUG)
-                        showToText("客户端 :" + client.getInetAddress().getHostAddress() + "/" + String.valueOf(client.getPort()) + "请求连接。\n");
-                    mExecutorService.execute(new Service(client));
-                }
+                if (DEBUG)
+                    showToText("客户端 :" + client.getInetAddress().getHostAddress() + "/" + String.valueOf(client.getPort()) + "请求连接。\n");
+                mExecutorService.execute(new Service(client));
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -295,6 +318,7 @@ public class MainActivity extends AppCompatActivity {
                                 sendObject.put("id", CHECK);
                                 if (checkAccount(jsonObject)) {
                                     sendObject.put("data", true);
+                                    sendObject.put("msg", "登录成功");
                                     sendmsg(sendObject.toJSONString());
                                     socketMap.put(PadIpAddress, this);
                                     if (DEBUG)
@@ -302,6 +326,7 @@ public class MainActivity extends AppCompatActivity {
                                     LoginSuccess = true;
                                 } else {
                                     sendObject.put("data", false);
+                                    sendObject.put("msg","用户名或密码错误");
                                     sendmsg(sendObject.toJSONString());
                                     if (DEBUG)
                                         showToText("客户端: " + PadIpAddress + "/" + String.valueOf(PadPort) + "权限认证失败\n");
@@ -315,6 +340,7 @@ public class MainActivity extends AppCompatActivity {
                                 if (checkAccount(jsonObject))
                                     PERMISSION = true;
                                 sendObject.put("data", PERMISSION);
+                                sendObject.put("msg", PERMISSION ? "管理员身份验证成功" : "管理员身份验证失败");
                                 sendmsg(sendObject.toJSONString());
                                 break;
                             case Other:
@@ -328,6 +354,9 @@ public class MainActivity extends AppCompatActivity {
                                         JSONObject data = jsonObject.getJSONObject("data");
                                         transmit.HostToCAN(data.getString("clazz"), data.getIntValue("field"), data.get("o"));
                                         break;
+                                    case 2:
+                                        transmit.setOtherFlag(jsonObject.getBooleanValue("data"));
+
                                     default:
                                         break;
                                 }
@@ -350,10 +379,10 @@ public class MainActivity extends AppCompatActivity {
 
         private void closeConn(){
             socketMap.remove(PadIpAddress);
-            JSONObject object = new JSONObject();
-            object.put("id",2345);
-            object.put("data",false);
-            sendmsg(object.toJSONString());
+//            JSONObject object = new JSONObject();
+//            object.put("id",2345);
+//            object.put("data",false);
+//            sendmsg(object.toJSONString());
             try {
                 if (out != null)
                     out.close();
@@ -425,10 +454,6 @@ public class MainActivity extends AppCompatActivity {
                 textNum++;
             }
         });
-    }
-
-    private void closeAllConn(){
-
     }
 
     @Override
