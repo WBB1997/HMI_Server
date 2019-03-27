@@ -43,7 +43,8 @@ public class BCM1 extends BaseClass {
         put(24, new MyPair<>(8, IntegerCommand.BCM_OutsideTemp, SendFlag.LOCALHOST)); // 车外温度
         put(32, new MyPair<>(8, IntegerCommand.BCM_InsideTemp, SendFlag.LOCALHOST)); // 车内温度
         put(45, new MyPair<>(3, IntegerCommand.BCM_ACBlowingLevel, SendFlag.LOCALHOST)); // 空调风量档位
-        put(44, new MyPair<>(1, IntegerCommand.BCM_DemisterStatus, SendFlag.LOCALHOST)); // 除雾状态
+        put(44, new MyPair<>(
+                1, IntegerCommand.BCM_DemisterStatus, SendFlag.LOCALHOST)); // 除雾状态
     }};
     private byte[] bytes = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 

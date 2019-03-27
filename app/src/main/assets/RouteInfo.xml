@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Routes>
+    <!--路线1-->
+    <Route name="route1">
+        <!--第一个站点-->
+        <item>
+            <!--中文-->
+            <chs>五号门</chs>
+            <!--英文-->
+            <en>Gate 5</en>
+            <!--路径-->
+            <path>route1_station1.wav</path>
+        </item>
+        <item>
+            <chs>发动机大楼</chs>
+            <en>Engine Building</en>
+            <path>route1_station2.wav</path>
+        </item>
+        <item>
+            <chs>竞品大楼</chs>
+            <en>Competitive Product Building</en>
+            <path>route1_station3.wav</path>
+        </item>
+        <item>
+            <chs>一号食堂</chs>
+            <en>No.1 Canteen</en>
+            <path>route1_station4.wav</path>
+        </item>
+        <item>
+            <chs>造型楼</chs>
+            <en>Styling Building</en>
+            <path>route1_station5.wav</path>
+        </item>
+        <item>
+            <chs>一号设计大楼</chs>
+            <en>Styling BuildingDesign building 1</en>
+            <path>route1_station6.wav</path>
+        </item>
+        <item>
+            <chs>旋转门</chs>
+            <en>Revolving Door</en>
+            <path>route1_station7.wav</path>
+        </item>
+    </Route>
+    <!--路线2-->
+    <Route name="route2">
+        <!--第一个站点-->
+        <item>
+            <!--中文-->
+            <chs>一号设计大楼</chs>
+            <!--英文-->
+            <en>Design building 1</en>
+            <!--路径-->
+            <path>route2_station1.wav</path>
+        </item>
+        <item>
+            <chs>二号设计大楼</chs>
+            <en>Design building 2</en>
+            <path>route2_station2.wav</path>
+        </item>
+        <item>
+            <chs>试制部大楼</chs>
+            <en>Prototyping Building</en>
+            <path>route2_station3.wav</path>
+        </item>
+        <item>
+            <chs>竞品楼</chs>
+            <en>Competitive Product Building</en>
+            <path>route2_station4.wav</path>
+        </item>
+        <item>
+            <chs>五号门</chs>
+            <en>Gate 5</en>
+            <path>route2_station5.wav</path>
+        </item>
+    </Route>
+</Routes>

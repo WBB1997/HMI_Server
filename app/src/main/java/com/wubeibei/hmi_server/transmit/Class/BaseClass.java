@@ -42,8 +42,8 @@ public abstract class BaseClass {
                 int target = entry.getValue().getSecond().second;
                 // 发回主函数
                 Transmit.getInstance().sendToPad(jsonObject, target);
-                // debug
-                LogUtil.d(TAG, jsonObject.toJSONString());
+//                // debug
+//                LogUtil.d(TAG, jsonObject.toJSONString());
             }
         }
         flag = false;
