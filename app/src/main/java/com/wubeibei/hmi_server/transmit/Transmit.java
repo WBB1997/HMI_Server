@@ -271,7 +271,6 @@ public class Transmit {
             new Pair<>("00000331", new PCGL1()),
             new Pair<>("00000333", new PCGR1()),
             new Pair<>("00000383", new HMI()),
-            new Pair<>("00000235", new OBU5()),
             new Pair<>("00000236", new HAD5()),
             new Pair<>("00000237", new HAD6()),
             new Pair<>("00000260", new BMS1()),

@@ -9,6 +9,7 @@ import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
@@ -45,6 +46,8 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -96,6 +99,7 @@ public class MainActivity extends BaseActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        hideBottomUIMenu();
         transmit = Transmit.getInstance();
         transmit.setBlockingQueue(blockingQueue); //设置回调阻塞队列
         LogTextView = findViewById(R.id.LogTextView);
@@ -137,6 +141,71 @@ public class MainActivity extends BaseActivity {
         }
     }
 
+    // 开启收发线程
+    private void init() {
+        // 485启动线程
+        scThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    sreialComm = new SreialComm(handler);
+                    sreialComm.receive();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+//        scThread.start();
+
+        // 获取账户列表
+        getDevicesMap();
+
+        // 车辆初始化
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                transmit.Can_init();
+            }
+        }).start();
+
+        // 开始接收Pad登陆
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                ReceiveForPad();
+            }
+        }).start();
+
+        // 开始将CAN发过来的消息转发给PAD
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while (true) {
+                    try {
+                        final JSONObject object = blockingQueue.take();
+                        playStationMusic(object);
+                        if (DEBUG)
+                            showToText("收到CAN总线发往Pad的消息" + object.toString() + "。\n");
+                        for (Map.Entry<String, Service> entry : socketMap.entrySet()) {
+                            final Service value = entry.getValue();
+                            if (DEBUG)
+                                showToText("向" + value.getPadIpAddress() + "/" + value.getPadPort() + "发送：" + object.toString() + "。\n");
+                            new Thread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    value.sendmsg(object.toJSONString());
+                                }
+                            }).start();
+                        }
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }).start();
+        initMusic();
+    }
+
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         switch (requestCode) {
@@ -171,20 +240,25 @@ public class MainActivity extends BaseActivity {
     /**
      * 播放站点音乐
      */
-    private void playStationMusic(final JSONObject object) {
-        int id = object.getIntValue("id");
-        int data = object.getIntValue("data");
-        if (id == HAD_CurrentDrivingRoadIDNum) {//当前行驶路线ID
-            musicBinder.setLoRouteNum(data);
-        } else if (id == HAD_NextStationIDNumb) {//下一个站点ID
-            lastStationId = data;
-        } else if (id == HAD_ArrivingSiteRemind) {//到站提醒
-            musicBinder.prepareData(data, lastStationId);
-        } else if (id == HAD_StartingSitedepartureRemind) {//起始站出发提醒
-            if (data == 2) {//起始站出发提醒
-                lastStationId = 1;//下一站为1
-                musicBinder.prepareData(3, lastStationId);
+    private void playStationMusic(JSONObject object) {
+        try {
+            int id = object.getIntValue("id");
+            int data = object.getIntValue("data");
+            if (id == HAD_CurrentDrivingRoadIDNum) {//当前行驶路线ID
+                musicBinder.setLoRouteNum(data);
+            } else if (id == HAD_NextStationIDNumb) {//下一个站点ID
+                lastStationId = data;
+            } else if (id == HAD_ArrivingSiteRemind) {//到站提醒
+                musicBinder.prepareData(data, lastStationId);
+            } else if (id == HAD_StartingSitedepartureRemind) {//起始站出发提醒
+                if (data == 2) {//起始站出发提醒
+                    lastStationId = 1;//下一站为1
+                    musicBinder.prepareData(3, lastStationId);
+                }
             }
+        }catch (JSONException e){
+            LogUtil.d(TAG, e.getMessage());
+            e.printStackTrace();
         }
     }
 
@@ -221,71 +295,6 @@ public class MainActivity extends BaseActivity {
 
         }
     };
-
-    // 开启收发线程
-    private void init() {
-        // 485启动线程
-        scThread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    sreialComm = new SreialComm(handler);
-                    sreialComm.receive();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        });
-        scThread.start();
-
-        // 获取账户列表
-        getDevicesMap();
-
-        // 车辆初始化
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                transmit.Can_init();
-            }
-        }).start();
-
-        // 开始接收Pad登陆
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                ReceiveForPad();
-            }
-        }).start();
-
-        // 开始将CAN发过来的消息转发给PAD
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                while (true) {
-                    try {
-                        final JSONObject object = blockingQueue.take();
-//                        playStationMusic(object);
-                        if (DEBUG)
-                            showToText("收到CAN总线发往Pad的消息" + object.toString() + "。\n");
-                        for (Map.Entry<String, Service> entry : socketMap.entrySet()) {
-                            final Service value = entry.getValue();
-                            if (DEBUG)
-                                showToText("向" + value.getPadIpAddress() + "/" + value.getPadPort() + "发送：" + object.toString() + "。\n");
-                            new Thread(new Runnable() {
-                                @Override
-                                public void run() {
-                                    value.sendmsg(object.toJSONString());
-                                }
-                            }).start();
-                        }
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-        }).start();
-        initMusic();
-    }
 
     @SuppressLint("HandlerLeak")
     private Handler handler = new Handler() {
@@ -353,7 +362,7 @@ public class MainActivity extends BaseActivity {
                         long differ = System.currentTimeMillis() - lastSendTime;
                         if (differ > HeartBeatTime) {
                             if (DEBUG)
-                                showToText("客户端 :" + PadIpAddress + "/" + String.valueOf(PadPort) + "因为5分钟之内没有发送消息，自动断开连接\n当前时间差：" + String.valueOf(differ) + "\n");
+                                showToText("客户端 :" + PadIpAddress + "/" + String.valueOf(PadPort) + "因为5分钟之内没有发送消息，自动断开连接\n");
                             closeConn();
                         }
                     }
@@ -404,7 +413,7 @@ public class MainActivity extends BaseActivity {
                             e.printStackTrace();
                             lastSendTime = System.currentTimeMillis();
                             if (DEBUG)
-                                showToText("收到客户端：" + PadIpAddress + "/" + String.valueOf(PadPort) + "发送的心跳包。当前时间戳：" + lastSendTime + "\n");
+                                showToText("收到客户端：" + PadIpAddress + "/" + String.valueOf(PadPort) + "发送的心跳包。当前时间：" + stampToDate(lastSendTime) + "\n");
                             continue;
                         }
                         int flag = jsonObject.getIntValue("flag");
@@ -644,5 +653,30 @@ public class MainActivity extends BaseActivity {
             e.printStackTrace();
         }
         return false;
+    }
+
+    public String stampToDate(long lt){
+        String res;
+        @SuppressLint("SimpleDateFormat") SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        Date date = new Date(lt);
+        res = simpleDateFormat.format(date);
+        return res;
+    }
+
+    /**
+     * 隐藏虚拟按键，并且全屏
+     */
+    protected void hideBottomUIMenu() {
+        //隐藏虚拟按键，并且全屏
+        if (Build.VERSION.SDK_INT > 11 && Build.VERSION.SDK_INT < 19) { // lower api
+            View v = this.getWindow().getDecorView();
+            v.setSystemUiVisibility(View.GONE);
+        } else if (Build.VERSION.SDK_INT >= 19) {
+            //for new api versions.
+            View decorView = getWindow().getDecorView();
+            int uiOptions = View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                    | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY | View.SYSTEM_UI_FLAG_FULLSCREEN;
+            decorView.setSystemUiVisibility(uiOptions);
+        }
     }
 }
