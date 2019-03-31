@@ -41,7 +41,7 @@ public class App extends Application {
                 if(data > 1&&data< 26){
                     data = (data*15)/26+1;
                 }
-                if(data == 26){
+                if(data >= 26){
                     data = 15;
                 }
                 audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, data, AudioManager.FLAG_PLAY_SOUND);

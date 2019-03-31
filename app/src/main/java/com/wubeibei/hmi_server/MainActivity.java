@@ -75,7 +75,7 @@ public class MainActivity extends BaseActivity {
     private Transmit transmit;
     private ServerSocket server = null;
     private static final int LOCAL_PORT = 5678;
-    private static final boolean DEBUG = true; // 是否启动调试
+    private static final boolean DEBUG = false; // 是否启动调试
 
     private final Map<String, Service> socketMap = new ConcurrentHashMap<>(); // 经过允许的客户端
     private final Map<String, Pair<String, String>> devicesMap = new HashMap<>(); // 允许连接的设备号集合
@@ -137,6 +137,8 @@ public class MainActivity extends BaseActivity {
             }, 1);
         } else {
             //有权限的话什么都不做
+            if(DEBUG)
+                showToText("音乐初始化成功\n");
             initMusic();
         }
     }
@@ -155,7 +157,7 @@ public class MainActivity extends BaseActivity {
                 }
             }
         });
-//        scThread.start();
+        scThread.start();
 
         // 获取账户列表
         getDevicesMap();
@@ -226,15 +228,15 @@ public class MainActivity extends BaseActivity {
     private void initMusic() {
         Intent mediaServiceIntent = new Intent(MainActivity.this, MusicService.class);
         bindService(mediaServiceIntent, connection, BIND_AUTO_CREATE);
-        handler.post(new Runnable() {
-            @Override
-            public void run() {
-                JSONObject object = new JSONObject();
-                object.put("id", 1);
-                object.put("data", 1);
-                App.getInstance().setAudioVolume(object);
-            }
-        });
+//        handler.post(new Runnable() {
+//            @Override
+//            public void run() {
+//                JSONObject object = new JSONObject();
+//                object.put("id", 1);
+//                object.put("data",2);
+//                App.getInstance().setAudioVolume(object);
+//            }
+//        });
     }
 
     /**
@@ -308,6 +310,8 @@ public class MainActivity extends BaseActivity {
                     if (data >= 25) {
                         data = 24;
                     }
+                    if (DEBUG)
+                        showToText("收到485消息：" + object.toJSONString() + "\n");
                     //将消息转发CAN
                     transmit.HostToCAN("HMI", HMI_Dig_ProjectorVolumnSetting, data);
                     break;
@@ -613,9 +617,9 @@ public class MainActivity extends BaseActivity {
         try {
             WifiConfiguration apConfig = new WifiConfiguration();
             //配置热点的名称
-            apConfig.SSID = "hmi_host";
+            apConfig.SSID = "Sharing_Van_HMI";
             //配置热点的密码(至少8位)
-            apConfig.preSharedKey = "hmi_host";
+            apConfig.preSharedKey = "SharingVanHMI";
             apConfig.allowedKeyManagement.set(4);
             //通过反射调用设置热点
             Method method = wifiManager.getClass().getMethod(

@@ -1,10 +1,9 @@
 package com.wubeibei.hmi_server.transmit.Class;
 
 
+import com.alibaba.fastjson.JSONException;
+import com.alibaba.fastjson.JSONObject;
 import com.wubeibei.hmi_server.transmit.bean.IntegerCommand;
-
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -18,7 +17,7 @@ import static com.wubeibei.hmi_server.util.ByteUtil.viewBinary;
 
 
 public class AD4 extends BaseClass {
-    private static final String TAG = "EPB1";
+    private static final String TAG = "AD4";
     private HashMap<Integer, MyPair<Integer>> fields = new HashMap<Integer, MyPair<Integer>>() {{
         put(0, new MyPair<>(1, IntegerCommand.HAD_GPS_LatLng, SendFlag.LOCALHOST)); // 东西经标识
         put(1, new MyPair<>(6, IntegerCommand.HAD_GPS_LatLng, SendFlag.LOCALHOST)); // 经度_分
@@ -81,8 +80,8 @@ public class AD4 extends BaseClass {
                 boolean NorthOrSouth = viewBinary(bytes[4], 0);
                 Degree = countBits(bytes,0,33,7, getState());
                 Minute = countBits(bytes,0,40,6,getState());
-                Second = countBits(bytes,0,56,10,getState());
-                SecondDecimal = countBits(bytes,0,24,10,getState());
+                Second = countBits(bytes,0,50,6,getState());
+                SecondDecimal = countBits(bytes,0,56,10,getState());
                 lat += Degree + Minute / 60 + (Second + SecondDecimal / 1000) / 3600;
                 if(!NorthOrSouth)
                     lat = -lat;
