@@ -5,6 +5,7 @@ import com.wubeibei.hmi_server.transmit.Transmit;
 import com.wubeibei.hmi_server.util.ByteUtil;
 import com.wubeibei.hmi_server.util.LogUtil;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -28,22 +29,33 @@ public abstract class BaseClass {
 
         int index;
         int length;
-        for (Map.Entry<Integer, MyPair<Integer>> entry : getFields().entrySet()) {
-            index = entry.getKey();
-            length = entry.getValue().getLength();
+        if(TAG.equals("AD4") && !Arrays.equals(bytes, Local_bytes)){
+            Map.Entry<Integer, MyPair<Integer>> entry = getFields().entrySet().iterator().next();
+            JSONObject jsonObject = new JSONObject();
+            // id
+            jsonObject.put("id", entry.getValue().getSecond().first);
+            // data
+            jsonObject.put("data", getValue(entry, bytes));
+            // target
+            int target = entry.getValue().getSecond().second;
+            // 发回主函数
+            Transmit.getInstance().sendToPad(jsonObject, target);
+        }else {
+            for (Map.Entry<Integer, MyPair<Integer>> entry : getFields().entrySet()) {
+                index = entry.getKey();
+                length = entry.getValue().getLength();
 
-            if(flag ||(countBits(Local_bytes,0,index,length,state) != countBits(bytes,0,index,length,state))){
-                JSONObject jsonObject = new JSONObject();
-                // id
-                jsonObject.put("id", entry.getValue().getSecond().first);
-                // data
-                jsonObject.put("data", getValue(entry, bytes));
-                // target
-                int target = entry.getValue().getSecond().second;
-                // 发回主函数
-                Transmit.getInstance().sendToPad(jsonObject, target);
-//                // debug
-//                LogUtil.d(TAG, jsonObject.toJSONString());
+                if (flag || (countBits(Local_bytes, 0, index, length, state) != countBits(bytes, 0, index, length, state))) {
+                    JSONObject jsonObject = new JSONObject();
+                    // id
+                    jsonObject.put("id", entry.getValue().getSecond().first);
+                    // data
+                    jsonObject.put("data", getValue(entry, bytes));
+                    // target
+                    int target = entry.getValue().getSecond().second;
+                    // 发回主函数
+                    Transmit.getInstance().sendToPad(jsonObject, target);
+                }
             }
         }
         flag = false;

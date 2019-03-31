@@ -70,24 +70,24 @@ public class AD4 extends BaseClass {
             case 50:
             case 56:
                 boolean EastOrWest = viewBinary(bytes[0], 0);
-                Degree = countBits(bytes,0,8,8, getState());
-                Minute = countBits(bytes,0,1,6,getState());
-                Second = countBits(bytes,0,18,6,getState());
-                SecondDecimal = countBits(bytes,0,24,10,getState());
+                Degree = countBits(bytes,0,8,8, ByteUtil.Motorola);
+                Minute = countBits(bytes,0,1,6,ByteUtil.Motorola);
+                Second = countBits(bytes,0,18,6,ByteUtil.Motorola);
+                SecondDecimal = countBits(bytes,0,24,10,ByteUtil.Motorola);
                 lon += Degree + Minute / 60 + (Second + SecondDecimal / 1000) / 3600;
-                if(!EastOrWest)
+                if(EastOrWest)
                     lon = -lon;
                 boolean NorthOrSouth = viewBinary(bytes[4], 0);
-                Degree = countBits(bytes,0,33,7, getState());
-                Minute = countBits(bytes,0,40,6,getState());
-                Second = countBits(bytes,0,50,6,getState());
-                SecondDecimal = countBits(bytes,0,56,10,getState());
+                Degree = countBits(bytes,0,33,7, ByteUtil.Motorola);
+                Minute = countBits(bytes,0,40,6,ByteUtil.Motorola);
+                Second = countBits(bytes,0,50,6,ByteUtil.Motorola);
+                SecondDecimal = countBits(bytes,0,56,10,ByteUtil.Motorola);
                 lat += Degree + Minute / 60 + (Second + SecondDecimal / 1000) / 3600;
                 if(!NorthOrSouth)
                     lat = -lat;
                 JSONObject lnglat = new JSONObject();
                 try {
-                    lnglat.put("lng", lon);
+                    lnglat.put("lon", lon);
                     lnglat.put("lat", lat);
                 }catch (JSONException e) {
                     e.printStackTrace();
