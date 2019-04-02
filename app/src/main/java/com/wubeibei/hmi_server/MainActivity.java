@@ -462,7 +462,6 @@ public class MainActivity extends BaseActivity {
                                         break;
                                     case 2:
                                         transmit.setOtherFlag(jsonObject.getBooleanValue("data"));
-
                                     default:
                                         break;
                                 }

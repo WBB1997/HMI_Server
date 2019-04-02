@@ -2,6 +2,7 @@ package com.wubeibei.hmi_server.transmit;
 
 import android.util.Pair;
 
+import com.alibaba.fastjson.JSONException;
 import com.alibaba.fastjson.JSONObject;
 import com.wubeibei.hmi_server.transmit.Class.AD1AndRCU1;
 import com.wubeibei.hmi_server.transmit.Class.AD4;
@@ -123,6 +124,8 @@ public class Transmit {
 
     // pad向Can总线发消息
     public void HostToCAN(String clazz, int field, Object o) {
+        if(field == HMI_Dig_Ord_Driver_model)
+            sendToDoorAndFront(o);
         BaseClass baseClass = (BaseClass) NAME_AND_CLASS.get(clazz);
         if (baseClass == null) {
             LogUtil.d(TAG, "类转换错误");
@@ -130,6 +133,24 @@ public class Transmit {
         }
         if (baseClass instanceof HMI)
             ((HMI) baseClass).changeStatus(field, o);
+    }
+
+    private void sendToDoorAndFront(final Object o){
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    JSONObject jsonObject = new JSONObject();
+                    jsonObject.put("id", HMI_Dig_Ord_Driver_model);
+                    jsonObject.put("data", o);
+                    UDP_send(jsonObject.toString().getBytes(), LEFT_DOOR_IP, LEFT_DOOR_PORT);
+                    UDP_send(jsonObject.toString().getBytes(), RIGHT_DOOR_IP, RIGHT_DOOR_PORT);
+                    UDP_send(jsonObject.toString().getBytes(), FRONT_DOOR_IP, FRONT_DOOR_PORT);
+                }catch (JSONException e){
+                    e.printStackTrace();
+                }
+            }
+        }).start();
     }
 
     // 发送队列线程
