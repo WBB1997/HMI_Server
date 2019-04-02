@@ -13,7 +13,7 @@ import static com.wubeibei.hmi_server.util.ByteUtil.countBits;
 public class PCGL1 extends BaseClass {
     private static final String TAG = "PCGL1";
     private HashMap<Integer, MyPair<Integer>> fields = new HashMap<Integer, MyPair<Integer>>(){{
-        put(0,new MyPair<>(3, IntegerCommand.PCG_Left_Work_Sts, SendFlag.DOOR)); // 左门状态信息
+        put(0,new MyPair<>(3, IntegerCommand.PCG_Left_Work_Sts, SendFlag.DOOR | SendFlag.FRONTSCREEN)); // 左门状态信息
         put(3,new MyPair<>(3, IntegerCommand.PCG_Left_Error_Mode, SendFlag.DOOR)); // 左门故障模式
         put(6,new MyPair<>(2, IntegerCommand.PCG_Left_Anti_Pinch_Mode, SendFlag.DOOR)); // 左门防夹类型
         put(8,new MyPair<>(8, IntegerCommand.PCG_Left_Open_Count, SendFlag.DOOR)); // 左门开门角度信息
