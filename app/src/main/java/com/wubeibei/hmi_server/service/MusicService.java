@@ -114,6 +114,7 @@ public class MusicService extends Service {
             } else if (playType == ARRIVED_TERMINAL_STATION) {//到达终点站{终点站 XXX 到了，开门请当心，下车请注意}
                 musicList.add(new File(basePath + "终点站.wav"));
                 musicList.add(new File(basePath + path));
+                musicList.add(new File(basePath + "到了.wav"));
                 musicList.add(new File(basePath + "开门请当心下车请注意.wav"));
                 musicList.add(new File(basePath+"mute.mp3"));
             } else if (playType == ARRIVING_TERMINAL_STATION) {//即将到达终点站{前方即将到达终点站 XXX， 请做好下车准备}
@@ -397,6 +398,5 @@ public class MusicService extends Service {
             }
         };
     }
-
 
 }
