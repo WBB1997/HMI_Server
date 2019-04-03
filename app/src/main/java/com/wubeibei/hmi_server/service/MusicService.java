@@ -30,16 +30,18 @@ public class MusicService extends Service {
     private final int ARRIVING_TERMINAL_STATION = 5;//即将到达终点站
     private final int ARRIVED_TERMINAL_STATION = 6;//到达终点站
     private String basePath = Environment.getExternalStorageDirectory() + "/minibus/sound/";//默认路径
+    private String fileName = "ShanghaiRouteInfo.xml";
     private MusicBinder mBinder;
     private MediaPlayer mediaPlayer;
     private List<File> musicList = null;//存放音乐的List
     private int currentRouteNum = 0;//默认路线号
     private int index = 0;//索引位
-    private static Map<Integer, Map<Integer, String>> routeMap = new HashMap<>();
+    private static Map<Integer, Map<Integer, String>> routeMap = new HashMap<>();//路线map
     private int mFlag = MUSIC;//判断当前播放的是哪一种音乐
     private int lastIndex = 0;//上一次的索引位
     private int lastProgress = 0;//上一次的音乐进度
-    private boolean isFirst = true;//判断是不是第一次
+    private boolean isFirstIndex = true;//判断是不是第一次播放
+    private boolean isOver = false;//第一次播放完是否结束
 
     public MusicService() {
     }
@@ -61,7 +63,7 @@ public class MusicService extends Service {
         mediaPlayer.setOnCompletionListener(mBinder.completionListener);
         mediaPlayer.setOnSeekCompleteListener(mBinder.seekCompleteListener);
         try {
-            InputStream in = this.getAssets().open("RouteInfo.xml");
+            InputStream in = this.getAssets().open(fileName);
             routeMap = parseXMLWithPull(in);
         } catch (IOException e) {
             e.printStackTrace();
@@ -77,11 +79,11 @@ public class MusicService extends Service {
         index = 0;
         mFlag = MUSIC;
         musicList = new ArrayList<>();
-        if (isFirst) {
-            musicList.add(new File(basePath, "欢迎乘坐.wav"));
-            musicList.add(new File(basePath+"mute.mp3"));
-            isFirst = false;
-        }
+//        if (isFirstIndex) {
+//            musicList.add(new File(basePath, "欢迎乘坐.wav"));
+//            musicList.add(new File(basePath+"mute.mp3"));
+//            isFirstIndex = false;
+//        }
         musicList.add(new File(basePath, "1.mp3"));
         musicList.add(new File(basePath, "2.mp3"));
         musicList.add(new File(basePath, "3.mp3"));
@@ -140,7 +142,9 @@ public class MusicService extends Service {
      */
     private void initMediaPlayerFile(int index) {
         try {
-            mediaPlayer.setDataSource(musicList.get(index).getPath());
+            String path = musicList.get(index).getPath();
+            Log.d(TAG, "initMediaPlayerFile: "+path);
+            mediaPlayer.setDataSource(path);
             mediaPlayer.prepare();
         } catch (Exception e) {
             Log.d(TAG, "设置资源，准备阶段出错");
@@ -277,8 +281,13 @@ public class MusicService extends Service {
                 }
             }
             if (mediaPlayer.isPlaying() && mFlag == MUSIC) {//正在播放车载音乐
+                if(isOver){//第一次播放完
+                   isOver = false;
+                   index -= 2;
+                }
                 lastIndex = index;
                 lastProgress = getCurrentPosition();
+                Log.d(TAG, "正在播放车载音乐: index="+index+","+"lastIndex="+lastIndex+","+"lastProgress="+lastProgress);
             }
             String path = getStaMusicInfo(stationNum);//下一站点语音路径
             String endPath = getStaMusicInfo(currentStationNum - 1);//终点站语音路径
@@ -373,7 +382,6 @@ public class MusicService extends Service {
         private MediaPlayer.OnSeekCompleteListener seekCompleteListener = new MediaPlayer.OnSeekCompleteListener() {
             @Override
             public void onSeekComplete(MediaPlayer mp) {
-//                Log.d(TAG, "onSeekComplete: ");
                 mp.start();
             }
         };

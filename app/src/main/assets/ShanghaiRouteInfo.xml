@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Routes>
+    <!--路线1-->
+    <Route name="route1">
+        <!--第一个站点-->
+        <item>
+            <!--中文-->
+            <chs>国展15号门</chs>
+            <!--英文-->
+            <en>Gate 5</en>
+            <!--路径-->
+            <path>sh_route1_station1.wav</path>
+        </item>
+        <item>
+            <chs>国展10号门</chs>
+            <en>Engine Building</en>
+            <path>sh_route1_station2.wav</path>
+        </item>
+        <item>
+            <chs>国展5号门</chs>
+            <en>Competitive Product Building</en>
+            <path>sh_route1_station3.wav</path>
+        </item>
+        <item>
+            <chs>虹桥机场T2</chs>
+            <en>No.1 Canteen</en>
+            <path>sh_route1_station4.wav</path>
+        </item>
+        <item>
+            <chs>虹桥机场T1</chs>
+            <en>Styling Building</en>
+            <path>sh_route1_station5.wav</path>
+        </item>
+    </Route>
+</Routes>

@@ -72,7 +72,7 @@ public class MainActivity extends BaseActivity {
     private Transmit transmit;
     private ServerSocket server = null;
     private static final int LOCAL_PORT = 5678;
-    private static final boolean DEBUG = false; // 是否启动调试
+    private static final boolean DEBUG = true; // 是否启动调试
 
     private final Map<String, Service> socketMap = new ConcurrentHashMap<>(); // 经过允许的客户端
     private final Map<String, Pair<String, String>> devicesMap = new HashMap<>(); // 允许连接的设备号集合
@@ -154,7 +154,7 @@ public class MainActivity extends BaseActivity {
                 }
             }
         });
-        scThread.start();
+//        scThread.start();
 
         // 获取账户列表
         getDevicesMap();
