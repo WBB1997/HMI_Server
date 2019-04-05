@@ -38,6 +38,7 @@
                 <category android:name="android.intent.category.HOME" />
             </intent-filter>
         </receiver>
+        <service android:name=".service.MusicService"/>
     </application>
 
 </manifest>

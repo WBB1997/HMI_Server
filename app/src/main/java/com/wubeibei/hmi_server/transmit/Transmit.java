@@ -1,5 +1,6 @@
 package com.wubeibei.hmi_server.transmit;
 
+import android.util.Log;
 import android.util.Pair;
 
 import com.alibaba.fastjson.JSONException;
@@ -220,6 +221,7 @@ public class Transmit {
 
 
     public void sendToPad(JSONObject jsonObject, int target) {
+        Log.d(TAG, "sendToPad: " + jsonObject);
         // 判断是否需要发给Pad
         switch (target) {
             case SendFlag.LOCALHOST | SendFlag.FRONTSCREEN:

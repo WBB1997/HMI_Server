@@ -41,7 +41,6 @@ public class MusicService extends Service {
     private int lastIndex = 0;//上一次的索引位
     private int lastProgress = 0;//上一次的音乐进度
     private boolean isFirstIndex = true;//判断是不是第一次播放
-    private boolean isOver = false;//第一次播放完是否结束
 
     public MusicService() {
     }
@@ -126,7 +125,7 @@ public class MusicService extends Service {
                 musicList.add(new File(basePath + "欢迎乘坐.wav"));
                 musicList.add(new File(basePath + "本车开往.wav"));
                 musicList.add(new File(basePath + endPath));
-                musicList.add(new File(basePath + "方向.wav"));
+//                musicList.add(new File(basePath + "方向.wav"));
                 musicList.add(new File(basePath + "下一站.wav"));
                 musicList.add(new File(basePath + path));
                 musicList.add(new File(basePath+"mute.mp3"));
@@ -282,13 +281,9 @@ public class MusicService extends Service {
                 }
             }
             if (mediaPlayer.isPlaying() && mFlag == MUSIC) {//正在播放车载音乐
-                if(isOver){//第一次播放完
-                   isOver = false;
-                   index -= 2;
-                }
                 lastIndex = index;
                 lastProgress = getCurrentPosition();
-                Log.d(TAG, "正在播放车载音乐: index="+index+","+"lastIndex="+lastIndex+","+"lastProgress="+lastProgress);
+//                Log.d(TAG, "正在播放车载音乐: index="+index+","+"lastIndex="+lastIndex+","+"lastProgress="+lastProgress);
             }
             String path = getStaMusicInfo(stationNum);//下一站点语音路径
             String endPath = getStaMusicInfo(currentStationNum - 1);//终点站语音路径

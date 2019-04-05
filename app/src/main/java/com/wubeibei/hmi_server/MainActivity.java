@@ -18,6 +18,7 @@ import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.text.method.ScrollingMovementMethod;
+import android.util.Log;
 import android.util.Pair;
 import android.view.View;
 import android.widget.TextView;
@@ -182,9 +183,10 @@ public class MainActivity extends BaseActivity {
                 while (true) {
                     try {
                         final JSONObject object = blockingQueue.take();
-                        playStationMusic(object);
                         if (DEBUG)
                             showToText("收到CAN总线发往Pad的消息" + object.toString() + "。\n");
+                        Log.d(TAG, "收到CAN总线发往Pad的消息" + object.toString() + "。\n");
+                        playStationMusic(object);
                         for (Map.Entry<String, Service> entry : socketMap.entrySet()) {
                             final Service value = entry.getValue();
                             if (DEBUG)
@@ -239,10 +241,12 @@ public class MainActivity extends BaseActivity {
     /**
      * 播放站点音乐
      */
-    private void playStationMusic(JSONObject object) {
+    private synchronized void playStationMusic(JSONObject object) {
         try {
             int id = object.getIntValue("id");
             int data = object.getIntValue("data");
+            if(data == 0)
+                return;
             if (id == HAD_CurrentDrivingRoadIDNum) {//当前行驶路线ID
                 musicBinder.setLoRouteNum(data);
             } else if (id == HAD_NextStationIDNumb) {//下一个站点ID
