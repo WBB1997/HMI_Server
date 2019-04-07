@@ -15,9 +15,9 @@ import com.wubeibei.hmi_server.transmit.Class.ESC3;
 import com.wubeibei.hmi_server.transmit.Class.HAD5;
 import com.wubeibei.hmi_server.transmit.Class.HAD6;
 import com.wubeibei.hmi_server.transmit.Class.HMI;
-import com.wubeibei.hmi_server.transmit.Class.OBU5;
 import com.wubeibei.hmi_server.transmit.Class.PCGL1;
 import com.wubeibei.hmi_server.transmit.Class.PCGR1;
+import com.wubeibei.hmi_server.transmit.Class.SWP1;
 import com.wubeibei.hmi_server.transmit.Class.VCU1;
 import com.wubeibei.hmi_server.transmit.Class.VCU4;
 import com.wubeibei.hmi_server.transmit.bean.SendFlag;
@@ -31,7 +31,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.BlockingQueue;
 
 import static com.wubeibei.hmi_server.transmit.Class.HMI.AIR_GRADE_OFF;
@@ -100,11 +99,11 @@ public class Transmit {
     }
 
     public void setADAndRCUFlag(boolean flag) {
-        try {
-            ((BaseClass) Objects.requireNonNull(NAME_AND_CLASS.get("HMI"))).setFlag(flag);
-        }catch (NullPointerException e){
-            e.printStackTrace();
-        }
+        BaseClass baseClass = (BaseClass) NAME_AND_CLASS.get("AD1AndRCU1");
+        if (baseClass == null)
+            Log.d(TAG, "setADAndRCUFlag: AD1AndRCU1 为空");
+        else
+            baseClass.setFlag(flag);
     }
 
     public void setOtherFlag(boolean flag) {
@@ -300,7 +299,8 @@ public class Transmit {
             new Pair<>("00000421", new VCU4()),
             new Pair<>("00000465", new BMS7()),
             new Pair<>("00000219", new AD1AndRCU1()),
-            new Pair<>("00000222", new VCU1())
+            new Pair<>("00000222", new VCU1()),
+            new Pair<>("00000384", new SWP1())
     ));
     // 消息标识符键值对，方便查找
     private Map<String, ? super BaseClass> FLAG_AND_CLASS = new HashMap<>();

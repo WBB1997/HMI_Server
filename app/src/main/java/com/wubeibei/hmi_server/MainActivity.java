@@ -18,7 +18,6 @@ import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.text.method.ScrollingMovementMethod;
-import android.util.Log;
 import android.util.Pair;
 import android.view.View;
 import android.widget.TextView;
@@ -67,6 +66,7 @@ import static com.wubeibei.hmi_server.transmit.bean.IntegerCommand.HAD_CurrentDr
 import static com.wubeibei.hmi_server.transmit.bean.IntegerCommand.HAD_NextStationIDNumb;
 import static com.wubeibei.hmi_server.transmit.bean.IntegerCommand.HAD_StartingSitedepartureRemind;
 import static com.wubeibei.hmi_server.transmit.bean.IntegerCommand.HMI_Dig_ProjectorVolumnSetting;
+import static com.wubeibei.hmi_server.transmit.bean.IntegerCommand.SWP_ProjectorVideobackStatus;
 
 public class MainActivity extends BaseActivity {
     private static final String TAG = "MainActivity";
@@ -92,6 +92,9 @@ public class MainActivity extends BaseActivity {
     private SreialComm sreialComm = null;
     private int lastStationId = 0;//下一站点id
     private MusicService.MusicBinder musicBinder;//音乐服务
+
+    // 音频状态
+    private volatile int nowMusicStatus = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -155,7 +158,7 @@ public class MainActivity extends BaseActivity {
                 }
             }
         });
-//        scThread.start();
+        scThread.start();
 
         // 获取账户列表
         getDevicesMap();
@@ -185,8 +188,10 @@ public class MainActivity extends BaseActivity {
                         final JSONObject object = blockingQueue.take();
                         if (DEBUG)
                             showToText("收到CAN总线发往Pad的消息" + object.toString() + "。\n");
-                        Log.d(TAG, "收到CAN总线发往Pad的消息" + object.toString() + "。\n");
+                        // 处理站点音乐
                         playStationMusic(object);
+                        // 处理侧风窗
+                        disposeMusic(object);
                         for (Map.Entry<String, Service> entry : socketMap.entrySet()) {
                             final Service value = entry.getValue();
                             if (DEBUG)
@@ -221,21 +226,44 @@ public class MainActivity extends BaseActivity {
         }
     }
 
+    private void disposeMusic(JSONObject object){
+        int id = object.getIntValue("id");
+        if(id == SWP_ProjectorVideobackStatus) {
+            nowMusicStatus = object.getIntValue("data");
+            if(musicBinder != null) {
+                musicBinder.setVCurrentVideoStatu(nowMusicStatus);
+                switch (nowMusicStatus) {
+                    case 1:
+                        if (musicBinder.isPlaying() && musicBinder.playType2Music())
+                            pauseMusic();
+                        break;
+                    case 2:
+                    case 3:
+                        if (!musicBinder.isPlaying())
+                            playMusic();
+                        break;
+                    default:
+                        break;
+                }
+            }
+        }
+    }
+
     /**
      * 播放音乐
      */
     private void initMusic() {
         Intent mediaServiceIntent = new Intent(MainActivity.this, MusicService.class);
         bindService(mediaServiceIntent, connection, BIND_AUTO_CREATE);
-//        handler.post(new Runnable() {
-//            @Override
-//            public void run() {
-//                JSONObject object = new JSONObject();
-//                object.put("id", 1);
-//                object.put("data",2);
-//                App.getInstance().setAudioVolume(object);
-//            }
-//        });
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                JSONObject object = new JSONObject();
+                object.put("id", 1);
+                object.put("data",2);
+                App.getInstance().setAudioVolume(object);
+            }
+        });
     }
 
     /**
@@ -269,6 +297,8 @@ public class MainActivity extends BaseActivity {
      * 播放音乐
      */
     private void playMusic() {
+        if(nowMusicStatus == 1)
+            return;
         if (musicBinder != null) {
             musicBinder.play();
         }
@@ -488,10 +518,6 @@ public class MainActivity extends BaseActivity {
 
         private void closeConn() {
             socketMap.remove(PadIpAddress);
-//            JSONObject object = new JSONObject();
-//            object.put("id",2345);
-//            object.put("data",false);
-//            sendmsg(object.toJSONString());
             try {
                 if (out != null)
                     out.close();

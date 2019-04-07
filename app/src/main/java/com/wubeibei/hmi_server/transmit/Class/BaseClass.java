@@ -18,7 +18,7 @@ public abstract class BaseClass {
     public abstract String getTAG();
     public void setFlag(boolean flag) {
         this.flag = flag;
-        if (flag)
+        if (!getTAG().equals("AD1AndRCU1") && flag)
             setBytes(getBytes());
     }
 

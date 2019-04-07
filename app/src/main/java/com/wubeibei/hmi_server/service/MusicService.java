@@ -41,12 +41,17 @@ public class MusicService extends Service {
     private int lastIndex = 0;//上一次的索引位
     private int lastProgress = 0;//上一次的音乐进度
     private boolean isFirstIndex = true;//判断是不是第一次播放
+    private int currentVideoStatu = 0;//当前投风窗状态
 
     public MusicService() {
     }
 
     public void setRouteNum(int routeNum) {
         this.currentRouteNum = routeNum;
+    }
+
+    public void setCurrentVideoStatu(int currentVideoStatu) {
+        this.currentVideoStatu = currentVideoStatu;
     }
 
     @Override
@@ -68,6 +73,7 @@ public class MusicService extends Service {
             e.printStackTrace();
         }
         initMusicData();
+        initMediaPlayerFile(index);
         mBinder.play();
     }
 
@@ -140,7 +146,7 @@ public class MusicService extends Service {
      *
      * @param index
      */
-    private void initMediaPlayerFile(int index) {
+    private synchronized void initMediaPlayerFile(int index) {
         try {
             String path = musicList.get(index).getPath();
             Log.d(TAG, "initMediaPlayerFile: "+path);
@@ -270,8 +276,13 @@ public class MusicService extends Service {
             setRouteNum(routeNum);
         }
 
+        public void setVCurrentVideoStatu(int currentVideoStatu) {
+            setCurrentVideoStatu(currentVideoStatu);
+        }
+
         //准备数据
         public void prepareData(int playType, int stationNum) {
+//            Log.d(TAG, "prepareData: " + playType + "  " + stationNum);
             int currentStationNum = getStationNum();//当前路线的总站点数
             if (stationNum == currentStationNum - 1) {//如果为终点站
                 if (playType == ARRIVED) {//如果现在是已经到站
@@ -290,10 +301,12 @@ public class MusicService extends Service {
 //            Log.d(TAG, "prepareData: "+ path + ":" + endPath);
             if (initStationMusicData(playType, path, endPath)) {
                 try {
-                    if (mediaPlayer.isPlaying()) {//正在播放
-                        index = 0;
-                        mediaPlayer.reset();//重置播放器
-                    }
+//                    if (mediaPlayer.isPlaying()) {//正在播放
+//                        index = 0;
+//                        mediaPlayer.reset();//重置播放器
+//                    }
+                    mediaPlayer.reset();//重置播放器
+                    initMediaPlayerFile(index);
                     play();
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -301,14 +314,26 @@ public class MusicService extends Service {
             }
         }
 
+        public boolean playType2Music(){
+            if(mFlag == MUSIC){
+                return true;
+            }
+            return false;
+        }
+
+        public boolean isPlaying(){
+            return mediaPlayer.isPlaying();
+        }
+
         //播放
         public void play() {
-            if (index == 0) {
-                initMediaPlayerFile(index);
-            }
+//            if (index == 0) {
+//                initMediaPlayerFile(index);
+//            }
             if (!mediaPlayer.isPlaying()) {
                 mediaPlayer.start();
             }
+            Log.d(TAG, "play");
         }
 
         //下一曲
@@ -318,6 +343,7 @@ public class MusicService extends Service {
                 initMediaPlayerFile(index);
                 play();
             } else {//播放结束
+//                Log.d(TAG, "nextMusic: "+"播放结束"+currentVideoStatu);
                 if (mediaPlayer != null) {
                     mediaPlayer.reset();
                     if (mFlag == MUSIC) {
@@ -336,8 +362,12 @@ public class MusicService extends Service {
 
         //暂停
         public void pause() {
+//            if(mFlag != MUSIC){//当前不在播放音乐
+//                return;
+//            }
             if (mediaPlayer.isPlaying()) {
                 mediaPlayer.pause();
+                Log.d(TAG, "pause");
             }
         }
 
@@ -346,6 +376,7 @@ public class MusicService extends Service {
             if (mediaPlayer != null) {
                 mediaPlayer.stop();
                 mediaPlayer.release();
+                Log.d(TAG, "close");
             }
         }
 
@@ -378,6 +409,11 @@ public class MusicService extends Service {
         private MediaPlayer.OnSeekCompleteListener seekCompleteListener = new MediaPlayer.OnSeekCompleteListener() {
             @Override
             public void onSeekComplete(MediaPlayer mp) {
+//                Log.d(TAG, "onSeekComplete: ");
+                //判断当前投风窗所处状态
+                if(currentVideoStatu == 1){
+                    return;
+                }
                 mp.start();
             }
         };

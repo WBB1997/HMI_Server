@@ -100,4 +100,5 @@ public class IntegerCommand {
     public static final int VCU_ACWorkingStatus = 88; //空调工作模式信号
     public static final int HMI_Dig_ProjectorModeSetting = 89; //投影仪模式设置
     public static final int HMI_Dig_ProjectorVolumnSetting = 90; //投影仪音量设置
+    public static final int SWP_ProjectorVideobackStatus = 91; //投影仪视频播放状态
 }
