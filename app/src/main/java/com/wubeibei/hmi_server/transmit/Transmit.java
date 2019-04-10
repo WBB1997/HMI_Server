@@ -57,6 +57,7 @@ import static com.wubeibei.hmi_server.transmit.bean.IntegerCommand.HMI_Dig_Ord_T
 import static com.wubeibei.hmi_server.transmit.bean.IntegerCommand.HMI_Dig_Ord_air_grade;
 import static com.wubeibei.hmi_server.transmit.bean.IntegerCommand.HMI_Dig_Ord_air_model;
 import static com.wubeibei.hmi_server.transmit.bean.IntegerCommand.HMI_Dig_Ord_eBooster_Warning;
+import static com.wubeibei.hmi_server.transmit.bean.IntegerCommand.HMI_Dig_ProjectorModeSetting;
 import static com.wubeibei.hmi_server.util.ByteUtil.bytesToHex;
 import static com.wubeibei.hmi_server.util.ByteUtil.subBytes;
 
