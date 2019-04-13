@@ -160,7 +160,7 @@ public class MainActivity extends BaseActivity {
                 }
             }
         });
-//        scThread.start();
+        scThread.start();
 
         // 获取账户列表
         getDevicesMap();
