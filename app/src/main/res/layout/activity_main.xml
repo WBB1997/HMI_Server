@@ -2,8 +2,7 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    tools:context=".MainActivity">
+    android:layout_height="match_parent">
 
     <TextView
         android:id="@+id/LogTextView"
@@ -13,33 +12,33 @@
         android:text=""
         android:textSize="15sp" />
 
-    <!--<LinearLayout-->
-        <!--android:layout_width="match_parent"-->
-        <!--android:layout_height="wrap_content"-->
-        <!--android:layout_alignParentBottom="true"-->
-        <!--android:background="@color/colorPrimaryDark"-->
-        <!--tools:ignore="MissingConstraints">-->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:background="@color/colorPrimaryDark"
+        tools:ignore="MissingConstraints">
 
-        <!--<EditText-->
-            <!--android:id="@+id/id"-->
-            <!--android:layout_width="0dp"-->
-            <!--android:layout_height="wrap_content"-->
-            <!--android:layout_weight="4"-->
-            <!--android:inputType="number"-->
-            <!--android:enabled="true"/>-->
-        <!--<EditText-->
-            <!--android:id="@+id/data"-->
-            <!--android:layout_width="0dp"-->
-            <!--android:layout_height="wrap_content"-->
-            <!--android:layout_weight="4"-->
-            <!--android:inputType="text"-->
-            <!--android:enabled="true"/>-->
+        <EditText
+            android:id="@+id/id"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="4"
+            android:inputType="number"
+            android:enabled="true"/>
+        <EditText
+            android:id="@+id/data"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="4"
+            android:inputType="text"
+            android:enabled="true"/>
 
-        <!--<Button-->
-            <!--android:id="@+id/button"-->
-            <!--android:layout_width="0dp"-->
-            <!--android:layout_height="wrap_content"-->
-            <!--android:layout_weight="2" />-->
-    <!--</LinearLayout>-->
+        <Button
+            android:id="@+id/button"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="2" />
+    </LinearLayout>
 
 </RelativeLayout>

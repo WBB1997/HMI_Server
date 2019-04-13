@@ -20,6 +20,8 @@ import android.support.v4.content.ContextCompat;
 import android.text.method.ScrollingMovementMethod;
 import android.util.Pair;
 import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
 import android.widget.TextView;
 
 import com.alibaba.fastjson.JSONException;
@@ -81,8 +83,8 @@ public class MainActivity extends BaseActivity {
     private final BlockingQueue<JSONObject> blockingQueue = new LinkedBlockingQueue<>(); // 消息队列
 
     private TextView LogTextView;
-//    private EditText Id;
-//    private EditText Data;
+    private EditText Id;
+    private EditText Data;
 
     private static final int First_Login = 1;
     private static final int Secondary_login = 2;
@@ -105,28 +107,28 @@ public class MainActivity extends BaseActivity {
         transmit.setBlockingQueue(blockingQueue); //设置回调阻塞队列
         LogTextView = findViewById(R.id.LogTextView);
         LogTextView.setMovementMethod(ScrollingMovementMethod.getInstance());
-//        Button button = findViewById(R.id.button);
-//        button.setText("发送");
-//        Id = findViewById(R.id.id);
-//        Data = findViewById(R.id.data);
-//        Id.setText("87");
-//        Data.setText("0");
-//        button.setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View v) {
-//                final String str_Id = Id.getText().toString();
-//                final String str_Data = Data.getText().toString();
-//                for (Map.Entry<String, Service> entry : socketMap.entrySet()) {
-//                    final Service value = entry.getValue();
-//                    new Thread(new Runnable() {
-//                        @Override
-//                        public void run() {
-//                            value.sendmsg("{\"id\":" + str_Id + ",\"data\":" + str_Data + "}");
-//                        }
-//                    }).start();
-//                }
-//            }
-//        });
+        Button button = findViewById(R.id.button);
+        button.setText("发送");
+        Id = findViewById(R.id.id);
+        Data = findViewById(R.id.data);
+        Id.setText("87");
+        Data.setText("0");
+        button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                final String str_Id = Id.getText().toString();
+                final String str_Data = Data.getText().toString();
+                for (Map.Entry<String, Service> entry : socketMap.entrySet()) {
+                    final Service value = entry.getValue();
+                    new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            value.sendmsg("{\"id\":" + str_Id + ",\"data\":" + str_Data + "}");
+                        }
+                    }).start();
+                }
+            }
+        });
         // 开启热点
         setWifiApEnabled(true);
         init();
@@ -158,7 +160,7 @@ public class MainActivity extends BaseActivity {
                 }
             }
         });
-        scThread.start();
+//        scThread.start();
 
         // 获取账户列表
         getDevicesMap();
