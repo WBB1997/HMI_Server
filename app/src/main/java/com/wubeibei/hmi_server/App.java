@@ -48,4 +48,8 @@ public class App extends Application {
             }
         }
     }
+
+    public void setAudioVolume(int volume){
+        audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, volume, AudioManager.FLAG_PLAY_SOUND);
+    }
 }

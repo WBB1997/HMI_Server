@@ -261,7 +261,7 @@ public class Transmit {
         } catch (IOException e) {
             e.printStackTrace();
         }finally {
-            UDP_receive_Can();
+//            UDP_receive_Can();
         }
     }
 

@@ -154,7 +154,9 @@ public class HMI extends BaseClass {
         byte[] second = new byte[14];
         System.arraycopy(bytes, 0, first, 0, first.length);
         bytes = new byte[]{(byte) 0xFF, (byte) 0xAA, 0x03, (byte) 0x83, 0x00, (byte) 0x80, 0x1B, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x02};
+        // 液面制动报警
         setBits(bytes, (int) countBits(first, offset, 21, 1, getState()), offset, 21, 1, getState());
+        // 风扇占比
         setBits(bytes, (int) countBits(first, offset, 24, 8, getState()), offset, 24, 8, getState());
         setBits(bytes, (int) countBits(first, offset, 48, 20, getState()), offset, 48, 20, getState());
         setBits(bytes, (int) countBits(first, offset, 36, 2, getState()), offset, 36, 2, getState());

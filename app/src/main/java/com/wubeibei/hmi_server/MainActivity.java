@@ -20,8 +20,6 @@ import android.support.v4.content.ContextCompat;
 import android.text.method.ScrollingMovementMethod;
 import android.util.Pair;
 import android.view.View;
-import android.widget.Button;
-import android.widget.EditText;
 import android.widget.TextView;
 
 import com.alibaba.fastjson.JSONException;
@@ -233,7 +231,7 @@ public class MainActivity extends BaseActivity {
         if(id == SWP_ProjectorVideobackStatus) {
             nowMusicStatus = object.getIntValue("data");
             if(musicBinder != null) {
-                musicBinder.setVCurrentVideoStatu(nowMusicStatus);
+                musicBinder.setVCurrentVideoStatus(nowMusicStatus);
                 switch (nowMusicStatus) {
                     case 1:
                         if (musicBinder.isPlaying() && musicBinder.playType2Music())
@@ -498,6 +496,9 @@ public class MainActivity extends BaseActivity {
                                         break;
                                     case 2:
                                         transmit.setOtherFlag(jsonObject.getBooleanValue("data"));
+                                    case 3:
+
+                                        break;
                                     default:
                                         break;
                                 }
@@ -640,7 +641,7 @@ public class MainActivity extends BaseActivity {
             //wifi和热点不能同时打开，所以打开热点的时候需要关闭wifi
             wifiManager.setWifiEnabled(false);
         }
-        if (isWifiApOpen(this))
+        if (isWifiApOpen(App.getInstance()))
             return;
         try {
             WifiConfiguration apConfig = new WifiConfiguration();

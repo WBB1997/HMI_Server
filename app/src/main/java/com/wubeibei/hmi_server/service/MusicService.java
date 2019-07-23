@@ -276,8 +276,12 @@ public class MusicService extends Service {
             setRouteNum(routeNum);
         }
 
-        public void setVCurrentVideoStatu(int currentVideoStatu) {
-            setCurrentVideoStatu(currentVideoStatu);
+        /**
+         * 设置当前视频状态
+         * @param currentVideoStatus
+         */
+        public void setVCurrentVideoStatus(int currentVideoStatus) {
+            setCurrentVideoStatu(currentVideoStatus);
         }
 
         //准备数据
